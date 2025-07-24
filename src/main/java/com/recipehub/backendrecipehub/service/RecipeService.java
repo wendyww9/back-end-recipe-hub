@@ -6,6 +6,7 @@ import com.recipehub.backendrecipehub.model.Recipe;
 import com.recipehub.backendrecipehub.model.User;
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
 
+import com.recipehub.backendrecipehub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,8 +16,10 @@ import java.util.Optional;
 @Service
 public class RecipeService {
 
-    @Autowired
-    private RecipeRepository recipeRepository;
+    private final RecipeRepository recipeRepository;
+    public  RecipeService(RecipeRepository recipeRepository) {
+        this.recipeRepository = recipeRepository;
+    }
 
     public Recipe createRecipe(RecipeRequestDTO dto, User author, Recipe originalRecipe) {
         Recipe entity = RecipeMapper.toEntity(dto, author, originalRecipe);
