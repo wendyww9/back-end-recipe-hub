@@ -21,13 +21,14 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())  // Disable CSRF for API testing
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/logout").permitAll() // Allow auth endpoints
-                        .requestMatchers("/api/users/register", "/api/users/login", "/api/users/logout").permitAll() // Allow user endpoints too
-                        .requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll() // Allow public recipe viewing
-                        .requestMatchers("/h2-console/**").permitAll() // Allow H2 console access
-                        .anyRequest().authenticated() // Require authentication for all other endpoints
+                                .anyRequest().permitAll()
+//                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/logout").permitAll() // Allow auth endpoints
+//                        .requestMatchers("/api/users/register", "/api/users/login", "/api/users/logout").permitAll() // Allow user endpoints too
+//                        .requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll() // Allow public recipe viewing
+//                        .requestMatchers("/h2-console/**").permitAll() // Allow H2 console access
+//                        .anyRequest().authenticated() // Require authentication for all other endpoints
                 )
-                .httpBasic(Customizer.withDefaults()) // Enable basic authentication
+//                .httpBasic(Customizer.withDefaults()) // Enable basic authentication
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
                         .logoutSuccessHandler((request, response, authentication) -> {
