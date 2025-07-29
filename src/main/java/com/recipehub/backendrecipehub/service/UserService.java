@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -131,5 +132,54 @@ public class UserService {
 
     public void deleteById(Long id) {
         userRepository.deleteById(id);
+    }
+
+
+    public User updatePassword(Long userId, Map<String, String> updatePasswordMap) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        String currentPassword = updatePasswordMap.get("currentPassword");
+        String newPassword = updatePasswordMap.get("newPassword");
+        
+        if (currentPassword == null || newPassword == null) {
+            throw new RuntimeException("Current password and new password are required");
+        }
+        
+        // Verify current password
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+        
+        // Update password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        return userRepository.save(user);
+    }
+
+    public User updateEmail(Long userId, Map<String, String> updateEmailMap) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        String currentPassword = updateEmailMap.get("currentPassword");
+        String newEmail = updateEmailMap.get("newEmail");
+        String newUsername = updateEmailMap.get("newUsername");
+        
+        if (currentPassword == null || newEmail == null) {
+            throw new RuntimeException("Current password and new email are required");
+        }
+        
+        // Verify current password
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+        
+        // Check if new email already exists
+        if (userRepository.findByEmail(newEmail).isPresent()) {
+            throw new RuntimeException("Email already exists");
+        }
+        
+        // Update email
+        user.setEmail(newEmail);
+        return userRepository.save(user);
     }
 }
