@@ -8,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -55,5 +56,27 @@ public class UserController {
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         userService.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{userId}/password")
+    public ResponseEntity<?> updatePassword(@PathVariable Long userId, @RequestBody Map<String, String> updatePasswordMap) {
+        try {
+            User updatedUser = userService.updatePassword(userId, updatePasswordMap);
+            updatedUser.setPassword(null); // Don't return password
+            return ResponseEntity.ok(updatedUser);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{userId}/email")
+    public ResponseEntity<?> updateEmail(@PathVariable Long userId, @RequestBody Map<String, String> updateEmailMap) {
+        try {
+            User updatedUser = userService.updateEmail(userId, updateEmailMap);
+            updatedUser.setPassword(null); // Don't return password
+            return ResponseEntity.ok(updatedUser);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
