@@ -162,7 +162,6 @@ public class UserService {
         
         String currentPassword = updateEmailMap.get("currentPassword");
         String newEmail = updateEmailMap.get("newEmail");
-        String newUsername = updateEmailMap.get("newUsername");
         
         if (currentPassword == null || newEmail == null) {
             throw new RuntimeException("Current password and new email are required");
@@ -182,4 +181,5 @@ public class UserService {
         user.setEmail(newEmail);
         return userRepository.save(user);
     }
+
 }

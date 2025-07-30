@@ -1,23 +1,32 @@
 package com.recipehub.backendrecipehub.controller;
 
 import com.recipehub.backendrecipehub.model.User;
+import com.recipehub.backendrecipehub.model.Recipe;
 import com.recipehub.backendrecipehub.service.UserService;
+import com.recipehub.backendrecipehub.service.RecipeService;
+import com.recipehub.backendrecipehub.dto.RecipeResponseDTO;
+import com.recipehub.backendrecipehub.mapper.RecipeMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
 public class UserController {
     private final UserService userService;
+    private final RecipeService recipeService;
 
-    public UserController(UserService userService) {
+    @Autowired
+    public UserController(UserService userService, RecipeService recipeService) {
         this.userService = userService;
+        this.recipeService = recipeService;
     }
 
     @GetMapping("/me")
@@ -51,13 +60,13 @@ public class UserController {
         return users;
     }
 
-
+    
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         userService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
-
+    
     @PutMapping("/{userId}/password")
     public ResponseEntity<?> updatePassword(@PathVariable Long userId, @RequestBody Map<String, String> updatePasswordMap) {
         try {
@@ -68,7 +77,7 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
+    
     @PutMapping("/{userId}/email")
     public ResponseEntity<?> updateEmail(@PathVariable Long userId, @RequestBody Map<String, String> updateEmailMap) {
         try {
@@ -77,6 +86,16 @@ public class UserController {
             return ResponseEntity.ok(updatedUser);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    
+    @GetMapping("/{userId}/recipes")
+    public ResponseEntity<List<RecipeResponseDTO>> getUserRecipes(@PathVariable Long userId) {
+        try {
+            List<RecipeResponseDTO> recipeDTOs = recipeService.getRecipesByUserIdAsDTOs(userId);
+            return ResponseEntity.ok(recipeDTOs);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
         }
     }
 }
