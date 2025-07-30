@@ -1,6 +1,8 @@
 package com.recipehub.backendrecipehub.service;
 
 import com.recipehub.backendrecipehub.dto.UserDTO;
+import com.recipehub.backendrecipehub.exception.DuplicateResourceException;
+import com.recipehub.backendrecipehub.exception.UserNotFoundException;
 import com.recipehub.backendrecipehub.model.User;
 import com.recipehub.backendrecipehub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,12 +28,12 @@ public class UserService {
     public User registerUser(UserDTO userDTO) {
         // Check if username already exists
         if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
-            throw new RuntimeException("Username already exists");
+            throw new DuplicateResourceException("Username", userDTO.getUsername());
         }
         
         // Check if email already exists
         if (userRepository.findByEmail(userDTO.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already exists");
+            throw new DuplicateResourceException("Email", userDTO.getEmail());
         }
         
         // Convert DTO to User entity
@@ -60,7 +62,7 @@ public class UserService {
         return false;
     }
 
-    public boolean login(String usernameOrEmail, String password) {
+    private Optional<User> findUserByUsernameOrEmail(String usernameOrEmail) {
         // Try to find user by username first
         Optional<User> userOpt = userRepository.findByUsername(usernameOrEmail);
         
@@ -68,6 +70,12 @@ public class UserService {
         if (userOpt.isEmpty()) {
             userOpt = userRepository.findByEmail(usernameOrEmail);
         }
+        
+        return userOpt;
+    }
+
+    public boolean login(String usernameOrEmail, String password) {
+        Optional<User> userOpt = findUserByUsernameOrEmail(usernameOrEmail);
         
         if (userOpt.isPresent()) {
             User user = userOpt.get();
@@ -77,13 +85,7 @@ public class UserService {
     }
 
     public Optional<User> loginAndGetUser(String usernameOrEmail, String password) {
-        // Try to find user by username first
-        Optional<User> userOpt = userRepository.findByUsername(usernameOrEmail);
-        
-        // If not found by username, try by email
-        if (userOpt.isEmpty()) {
-            userOpt = userRepository.findByEmail(usernameOrEmail);
-        }
+        Optional<User> userOpt = findUserByUsernameOrEmail(usernameOrEmail);
         
         if (userOpt.isPresent()) {
             User user = userOpt.get();
@@ -137,7 +139,7 @@ public class UserService {
 
     public User updatePassword(Long userId, Map<String, String> updatePasswordMap) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new UserNotFoundException(userId));
         
         String currentPassword = updatePasswordMap.get("currentPassword");
         String newPassword = updatePasswordMap.get("newPassword");
@@ -158,7 +160,7 @@ public class UserService {
 
     public User updateEmail(Long userId, Map<String, String> updateEmailMap) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new UserNotFoundException(userId));
         
         String currentPassword = updateEmailMap.get("currentPassword");
         String newEmail = updateEmailMap.get("newEmail");
@@ -174,7 +176,7 @@ public class UserService {
         
         // Check if new email already exists
         if (userRepository.findByEmail(newEmail).isPresent()) {
-            throw new RuntimeException("Email already exists");
+            throw new DuplicateResourceException("Email", newEmail);
         }
         
         // Update email

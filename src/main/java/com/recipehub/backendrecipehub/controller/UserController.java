@@ -69,54 +69,34 @@ public class UserController {
     
     @PutMapping("/{userId}/password")
     public ResponseEntity<?> updatePassword(@PathVariable Long userId, @RequestBody Map<String, String> updatePasswordMap) {
-        try {
-            User updatedUser = userService.updatePassword(userId, updatePasswordMap);
-            updatedUser.setPassword(null); // Don't return password
-            return ResponseEntity.ok(updatedUser);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        User updatedUser = userService.updatePassword(userId, updatePasswordMap);
+        updatedUser.setPassword(null); // Don't return password
+        return ResponseEntity.ok(updatedUser);
     }
     
     @PutMapping("/{userId}/email")
     public ResponseEntity<?> updateEmail(@PathVariable Long userId, @RequestBody Map<String, String> updateEmailMap) {
-        try {
-            User updatedUser = userService.updateEmail(userId, updateEmailMap);
-            updatedUser.setPassword(null); // Don't return password
-            return ResponseEntity.ok(updatedUser);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        User updatedUser = userService.updateEmail(userId, updateEmailMap);
+        updatedUser.setPassword(null); // Don't return password
+        return ResponseEntity.ok(updatedUser);
     }
     
     @GetMapping("/{userId}/recipes")
     public ResponseEntity<List<RecipeResponseDTO>> getUserRecipes(@PathVariable Long userId) {
-        try {
-            List<RecipeResponseDTO> recipeDTOs = recipeService.getRecipesByUserIdAsDTOs(userId);
-            return ResponseEntity.ok(recipeDTOs);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).build();
-        }
+        List<RecipeResponseDTO> recipeDTOs = recipeService.getRecipesByUserId(userId);
+        return ResponseEntity.ok(recipeDTOs);
     }
 
     @GetMapping("/{userId}/recipes/cooked")
     public ResponseEntity<List<RecipeResponseDTO>> getCookedRecipes(@PathVariable Long userId) {
-        try {
-            List<RecipeResponseDTO> recipeDTOs = recipeService.getUserCookedRecipes(userId);
-            return ResponseEntity.ok(recipeDTOs);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).build();
-        }
+        List<RecipeResponseDTO> recipeDTOs = recipeService.getUserCookedRecipes(userId);
+        return ResponseEntity.ok(recipeDTOs);
     }
 
     @GetMapping("/{userId}/recipes/favourite")
     public ResponseEntity<List<RecipeResponseDTO>> getFavouriteRecipes(@PathVariable Long userId) {
-        try {
-            List<RecipeResponseDTO> recipeDTOs = recipeService.getUserFavouriteRecipes(userId);
-            return ResponseEntity.ok(recipeDTOs);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).build();
-        }
+        List<RecipeResponseDTO> recipeDTOs = recipeService.getUserFavouriteRecipes(userId);
+        return ResponseEntity.ok(recipeDTOs);
     }
 
 }

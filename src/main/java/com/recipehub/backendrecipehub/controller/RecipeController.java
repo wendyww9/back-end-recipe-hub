@@ -2,6 +2,8 @@ package com.recipehub.backendrecipehub.controller;
 
 import com.recipehub.backendrecipehub.dto.RecipeRequestDTO;
 import com.recipehub.backendrecipehub.dto.RecipeResponseDTO;
+import com.recipehub.backendrecipehub.exception.RecipeNotFoundException;
+import com.recipehub.backendrecipehub.exception.UserNotFoundException;
 import com.recipehub.backendrecipehub.model.Recipe;
 import com.recipehub.backendrecipehub.model.User;
 import com.recipehub.backendrecipehub.service.RecipeService;
@@ -38,12 +40,12 @@ public class RecipeController {
     @PostMapping
     public ResponseEntity<RecipeResponseDTO> createRecipe(@Valid @RequestBody RecipeRequestDTO requestDTO) {
         User author = userRepository.findById(requestDTO.getAuthorId())
-                .orElseThrow(() -> new RuntimeException("Author not found"));
+                .orElseThrow(() -> new UserNotFoundException(requestDTO.getAuthorId()));
 
         Recipe originalRecipe = null;
         if (requestDTO.getOriginalRecipeId() != null) {
             originalRecipe = recipeRepository.findById(requestDTO.getOriginalRecipeId())
-                    .orElseThrow(() -> new RuntimeException("Original recipe not found"));
+                    .orElseThrow(() -> new RecipeNotFoundException(requestDTO.getOriginalRecipeId()));
         }
 
         RecipeResponseDTO saved = recipeService.createRecipe(requestDTO, author, originalRecipe);
@@ -68,31 +70,16 @@ public class RecipeController {
     @GetMapping("/{id}")
     public ResponseEntity<RecipeResponseDTO> getById(@PathVariable Long id) {
         RecipeResponseDTO recipe = recipeService.getRecipeById(id)
-                .orElseThrow(() -> new RuntimeException("Recipe not found"));
+                .orElseThrow(() -> new RecipeNotFoundException(id));
         return ResponseEntity.ok(recipe);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<RecipeResponseDTO> updateRecipe(@PathVariable Long id, @Valid @RequestBody RecipeRequestDTO requestDTO) {
-        try {
-            // TODO: Get actual user ID from authentication context
-            Long userId = requestDTO.getAuthorId();
-            RecipeResponseDTO updatedRecipe = recipeService.updateRecipeWithValidation(id, requestDTO, userId);
-            return ResponseEntity.ok(updatedRecipe);
-        } catch (RuntimeException e) {
-            return handleUpdateException(e);
-        }
-    }
-
-
-    private ResponseEntity<RecipeResponseDTO> handleUpdateException(RuntimeException e) {
-        if (e.getMessage().contains("Unauthorized")) {
-            return ResponseEntity.status(403).build();
-        } else if (e.getMessage().contains("not found")) {
-            return ResponseEntity.notFound().build();
-        } else {
-            return ResponseEntity.badRequest().build();
-        }
+        // TODO: Get actual user ID from authentication context
+        Long userId = requestDTO.getAuthorId();
+        RecipeResponseDTO updatedRecipe = recipeService.updateRecipeWithValidation(id, requestDTO, userId);
+        return ResponseEntity.ok(updatedRecipe);
     }
 
     @PutMapping("/{id}/likecount")
@@ -106,15 +93,11 @@ public class RecipeController {
     public ResponseEntity<RecipeResponseDTO> forkRecipe(
         @PathVariable Long id,
         @RequestBody(required = false) RecipeRequestDTO modifications) {
-        try {
-            // TODO: Get actual user ID from authentication context
-            // For now, we'll use a default user ID of 1
-            Long userId = 1L;
-            RecipeResponseDTO forkedRecipe = recipeService.forkRecipe(id, modifications, userId);
-            return ResponseEntity.ok(forkedRecipe);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        // TODO: Get actual user ID from authentication context
+        // For now, we'll use a default user ID of 1
+        Long userId = 1L;
+        RecipeResponseDTO forkedRecipe = recipeService.forkRecipe(id, modifications, userId);
+        return ResponseEntity.ok(forkedRecipe);
     }
 
 }
