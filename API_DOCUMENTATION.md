@@ -487,6 +487,60 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 
 ---
 
+### 16. Update Recipe Like Count
+**PUT** `/api/recipes/{id}/likecount`
+
+**Request Parameters:**
+- `likeCount` (query parameter): The new like count value (integer)
+
+**Request Body:** None
+
+**Example Request:**
+```
+PUT /api/recipes/1/likecount?likeCount=15
+```
+
+**Response Body (200 OK):**
+```json
+{
+  "id": 1,
+  "title": "string",
+  "description": "string",
+  "ingredients": [
+    {
+      "name": "string",
+      "unit": "string",
+      "quantity": 1.0
+    }
+  ],
+  "instructions": ["string"],
+  "isPublic": true,
+  "cooked": false,
+  "favourite": false,
+  "likeCount": 15,
+  "authorId": 1,
+  "authorUsername": "string",
+  "originalRecipeId": null,
+  "createdAt": "2025-07-29T21:51:22.106186",
+  "updatedAt": "2025-07-29T21:51:22.108822"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "message": "Recipe not found"
+}
+```
+
+**Notes:**
+- No authorization required - anyone can update like count
+- Frontend-driven: Frontend sends the final like count value
+- Does not update the recipe's `updatedAt` timestamp
+- Simple count update without affecting recipe content
+
+---
+
 ## Data Transfer Objects (DTOs)
 
 ### UserDTO
@@ -573,4 +627,5 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 4. **Partial Updates:** Recipe update endpoint supports partial updates (only send fields you want to change)
 5. **Privacy:** Recipe endpoints respect privacy settings (public/private recipes)
 6. **Authorization:** Recipe updates require ownership verification
-7. **Timestamps:** All recipes include `createdAt` and `updatedAt` timestamps 
+7. **Timestamps:** All recipes include `createdAt` and `updatedAt` timestamps
+8. **Like Count:** Separate endpoint for updating like count without authorization requirements 
