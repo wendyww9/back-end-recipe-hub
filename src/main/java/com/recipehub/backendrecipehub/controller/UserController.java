@@ -98,4 +98,25 @@ public class UserController {
             return ResponseEntity.status(500).build();
         }
     }
+
+    @GetMapping("/{userId}/recipes/cooked")
+    public ResponseEntity<List<RecipeResponseDTO>> getCookedRecipes(@PathVariable Long userId) {
+        try {
+            List<RecipeResponseDTO> recipeDTOs = recipeService.getUserCookedRecipes(userId);
+            return ResponseEntity.ok(recipeDTOs);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/{userId}/recipes/favourite")
+    public ResponseEntity<List<RecipeResponseDTO>> getFavouriteRecipes(@PathVariable Long userId) {
+        try {
+            List<RecipeResponseDTO> recipeDTOs = recipeService.getUserFavouriteRecipes(userId);
+            return ResponseEntity.ok(recipeDTOs);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
 }

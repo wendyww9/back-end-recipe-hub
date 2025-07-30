@@ -46,24 +46,18 @@ public class RecipeController {
                     .orElseThrow(() -> new RuntimeException("Original recipe not found"));
         }
 
-        Recipe saved = recipeService.createRecipe(requestDTO, author, originalRecipe);
-        return ResponseEntity.ok(RecipeMapper.toDTO(saved));
+        RecipeResponseDTO saved = recipeService.createRecipe(requestDTO, author, originalRecipe);
+        return ResponseEntity.ok(saved);
     }
 
     @GetMapping
     public List<RecipeResponseDTO> getAllRecipes() {
-        return recipeService.getAllPublicRecipes()
-                .stream()
-                .map(RecipeMapper::toDTO)
-                .collect(Collectors.toList());
+        return recipeService.getAllRecipes();
     }
 
     @GetMapping("/public")
     public List<RecipeResponseDTO> getAllPublicRecipes() {
-        return recipeService.getAllPublicRecipes()
-                .stream()
-                .map(RecipeMapper::toDTO)
-                .collect(Collectors.toList());
+        return recipeService.getAllPublicRecipes();
     }
 
     @GetMapping("/search")
@@ -73,9 +67,9 @@ public class RecipeController {
 
     @GetMapping("/{id}")
     public ResponseEntity<RecipeResponseDTO> getById(@PathVariable Long id) {
-        Recipe recipe = recipeService.getRecipeById(id)
+        RecipeResponseDTO recipe = recipeService.getRecipeById(id)
                 .orElseThrow(() -> new RuntimeException("Recipe not found"));
-        return ResponseEntity.ok(RecipeMapper.toDTO(recipe));
+        return ResponseEntity.ok(recipe);
     }
 
     @PutMapping("/{id}")
@@ -123,8 +117,4 @@ public class RecipeController {
         }
     }
 
-    @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("Controller is working!");
-    }
 }
