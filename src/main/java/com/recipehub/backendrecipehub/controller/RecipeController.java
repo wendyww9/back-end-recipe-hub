@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/recipes")
@@ -70,5 +71,40 @@ public class RecipeController {
         Recipe recipe = recipeService.getRecipeById(id)
                 .orElseThrow(() -> new RuntimeException("Recipe not found"));
         return ResponseEntity.ok(RecipeMapper.toDTO(recipe));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<RecipeResponseDTO> updateRecipe(@PathVariable Long id, @Valid @RequestBody RecipeRequestDTO requestDTO) {
+        try {
+            // TODO: Get actual user ID from authentication context
+            Long userId = requestDTO.getAuthorId();
+            RecipeResponseDTO updatedRecipe = recipeService.updateRecipeWithValidation(id, requestDTO, userId);
+            return ResponseEntity.ok(updatedRecipe);
+        } catch (RuntimeException e) {
+            return handleUpdateException(e);
+        }
+    }
+
+
+    private ResponseEntity<RecipeResponseDTO> handleUpdateException(RuntimeException e) {
+        if (e.getMessage().contains("Unauthorized")) {
+            return ResponseEntity.status(403).build();
+        } else if (e.getMessage().contains("not found")) {
+            return ResponseEntity.notFound().build();
+        } else {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PutMapping("/{id}/likecount")
+    public ResponseEntity<RecipeResponseDTO> updateLikeCount(
+        @PathVariable Long id,
+        @RequestParam int likeCount) {
+            return ResponseEntity.ok(recipeService.updateLikeCount(id, likeCount));
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        return ResponseEntity.ok("Controller is working!");
     }
 }
