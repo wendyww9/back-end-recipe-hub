@@ -3,6 +3,9 @@ package com.recipehub.backendrecipehub.service;
 import com.recipehub.backendrecipehub.dto.IngredientDTO;
 import com.recipehub.backendrecipehub.dto.RecipeRequestDTO;
 import com.recipehub.backendrecipehub.dto.RecipeResponseDTO;
+import com.recipehub.backendrecipehub.exception.RecipeNotFoundException;
+import com.recipehub.backendrecipehub.exception.UnauthorizedException;
+import com.recipehub.backendrecipehub.exception.UserNotFoundException;
 import com.recipehub.backendrecipehub.mapper.RecipeMapper;
 import com.recipehub.backendrecipehub.model.Ingredient;
 import com.recipehub.backendrecipehub.model.Recipe;
@@ -55,11 +58,11 @@ public class RecipeService {
 
     public RecipeResponseDTO updateRecipe(Long id, RecipeRequestDTO dto, Long userId) {
         Recipe recipe = recipeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Recipe not found"));
+                .orElseThrow(() -> new RecipeNotFoundException(id));
         
         // Check if the user is the author of the recipe
         if (!recipe.getAuthor().getId().equals(userId)) {
-            throw new RuntimeException("Unauthorized: Only the recipe author can update this recipe");
+            throw new UnauthorizedException("Only the recipe author can update this recipe");
         }
         
         RecipeMapper.updateEntity(dto, recipe);
@@ -80,9 +83,8 @@ public class RecipeService {
     }
 
     public RecipeResponseDTO updateLikeCount(Long id, Integer likeCount) {
-        
         Recipe recipe = recipeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Recipe not found"));
+                .orElseThrow(() -> new RecipeNotFoundException(id));
         recipe.setLikeCount(likeCount);
         
         Recipe savedRecipe = recipeRepository.save(recipe);
@@ -92,11 +94,11 @@ public class RecipeService {
     public RecipeResponseDTO forkRecipe(Long recipeToForkId, RecipeRequestDTO modifications, Long userId) {
         // Find the recipe being forked
         Recipe recipeToFork = recipeRepository.findById(recipeToForkId)
-                .orElseThrow(() -> new RuntimeException("Recipe to fork not found"));
+                .orElseThrow(() -> new RecipeNotFoundException(recipeToForkId));
 
         // Find the user who is forking
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         // Determine the original recipe
         Recipe originalRecipe = recipeToFork.getOriginalRecipe();
@@ -169,19 +171,7 @@ public class RecipeService {
                 .collect(Collectors.toList());
     }
 
-    // Method to get recipes by user ID and convert to DTOs with error handling
-    @Transactional(readOnly = true)
-    public List<RecipeResponseDTO> getRecipesByUserIdAsDTOs(Long userId) {
-        try {
-            List<RecipeResponseDTO> recipes = getRecipesByUserId(userId);
-            System.out.println("Found " + recipes.size() + " recipes for user " + userId);
-            return recipes;
-        } catch (Exception e) {
-            System.err.println("Error in getRecipesByUserIdAsDTOs: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Failed to retrieve recipes for user: " + userId, e);
-        }
-    }
+
 
     public List<RecipeResponseDTO> getUserCookedRecipes(Long userId) {
         List<Recipe> recipes = recipeRepository.findByAuthorIdAndCookedTrue(userId);
