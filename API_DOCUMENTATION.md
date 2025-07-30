@@ -259,9 +259,122 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 
 ---
 
+### 11. Get User Cooked Recipes
+**GET** `/api/users/{userId}/recipes/cooked`
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 3,
+    "title": "Avocado Toast",
+    "description": "Simple and delicious breakfast",
+    "ingredients": [
+      {
+        "name": "Avocado",
+        "unit": "pcs",
+        "quantity": 1.0
+      },
+      {
+        "name": "Bread",
+        "unit": "slices",
+        "quantity": 2.0
+      },
+      {
+        "name": "Salt",
+        "unit": "tsp",
+        "quantity": 0.5
+      }
+    ],
+    "instructions": [
+      "Toast the bread.",
+      "Mash the avocado and spread it on the toast.",
+      "Sprinkle with salt and serve."
+    ],
+    "isPublic": false,
+    "cooked": true,
+    "favourite": true,
+    "likeCount": 0,
+    "authorId": 2,
+    "authorUsername": "david",
+    "originalRecipeId": null,
+    "createdAt": "2025-07-24T11:49:14.582689",
+    "updatedAt": "2025-07-24T11:49:14.611497"
+  }
+]
+```
+
+**Key Features:**
+- **Filtered Results:** Returns only recipes where `cooked: true`
+- **User-Specific:** Only returns recipes owned by the specified user
+- **DTO Format:** Returns `RecipeResponseDTO` objects with complete recipe information
+
+---
+
+### 12. Get User Favourite Recipes
+**GET** `/api/users/{userId}/recipes/favourite`
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "title": "Avocado Toast Remix Deluxe",
+    "description": "A variation with chili flakes and lemon.",
+    "ingredients": [
+      {
+        "name": "Bread",
+        "unit": "slices",
+        "quantity": 2.0
+      },
+      {
+        "name": "Avocado",
+        "unit": "whole",
+        "quantity": 2.0
+      },
+      {
+        "name": "Chili Flakes",
+        "unit": "tsp",
+        "quantity": 0.5
+      },
+      {
+        "name": "Lemon Juice",
+        "unit": "tsp",
+        "quantity": 1.0
+      }
+    ],
+    "instructions": [
+      "Toast the bread slices.",
+      "Mash the avocado and spread on toast.",
+      "Sprinkle chili flakes and drizzle lemon juice on top."
+    ],
+    "isPublic": false,
+    "cooked": false,
+    "favourite": true,
+    "likeCount": 5,
+    "authorId": 1,
+    "authorUsername": "alice",
+    "originalRecipeId": null,
+    "createdAt": "2025-07-24T11:22:10.63407",
+    "updatedAt": "2025-07-30T11:34:42.626025"
+  }
+]
+```
+
+**Key Features:**
+- **Filtered Results:** Returns only recipes where `favourite: true`
+- **User-Specific:** Only returns recipes owned by the specified user
+- **DTO Format:** Returns `RecipeResponseDTO` objects with complete recipe information
+
+---
+
 ## Recipe Management Endpoints (`/api/recipes`)
 
-### 11. Create Recipe
+### 13. Create Recipe
 **POST** `/api/recipes`
 
 **Request Body:**
@@ -320,7 +433,7 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 
 ---
 
-### 12. Get All Recipes (Public Only)
+### 14. Get All Recipes
 **GET** `/api/recipes`
 
 **Request Body:** None
@@ -353,9 +466,14 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 ]
 ```
 
+**Key Features:**
+- **All Recipes:** Returns both public and private recipes
+- **DTO Format:** Returns `RecipeResponseDTO` objects with complete recipe information
+- **Author Information:** Includes author details for each recipe
+
 ---
 
-### 13. Get All Public Recipes
+### 15. Get All Public Recipes
 **GET** `/api/recipes/public`
 
 **Request Body:** None
@@ -388,9 +506,14 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 ]
 ```
 
+**Key Features:**
+- **Public Only:** Returns only recipes where `isPublic: true`
+- **DTO Format:** Returns `RecipeResponseDTO` objects with complete recipe information
+- **Author Information:** Includes author details for each recipe
+
 ---
 
-### 14. Search Recipes by Title
+### 16. Search Recipes by Title
 **GET** `/api/recipes/search`
 
 **Request Parameters:**
@@ -463,10 +586,11 @@ GET /api/recipes/search?title=chocolate
 - **Partial Matching:** Uses `LIKE` query with wildcards (e.g., "choc" matches "Chocolate")
 - **All Recipes:** Returns both public and private recipes that match the search term
 - **Empty Results:** Returns empty array `[]` when no matches are found
+- **DTO Format:** Returns `RecipeResponseDTO` objects with complete recipe information
 
 ---
 
-### 15. Get Recipe by ID
+### 17. Get Recipe by ID
 **GET** `/api/recipes/{id}`
 
 **Request Body:** None
@@ -506,7 +630,7 @@ GET /api/recipes/search?title=chocolate
 
 ---
 
-### 16. Update Recipe
+### 18. Update Recipe
 **PUT** `/api/recipes/{id}`
 
 **Request Body (Partial Update Supported):**
@@ -563,7 +687,7 @@ GET /api/recipes/search?title=chocolate
 
 ---
 
-### 17. Update Recipe Like Count
+### 19. Update Recipe Like Count
 **PUT** `/api/recipes/{id}/likecount`
 
 **Request Parameters:**
@@ -617,7 +741,7 @@ PUT /api/recipes/1/likecount?likeCount=15
 
 ---
 
-### 18. Fork Recipe
+### 20. Fork Recipe
 **POST** `/api/recipes/{id}/fork`
 
 **Description:** Creates a copy of an existing recipe with optional modifications. Similar to GitHub's fork functionality.
@@ -838,4 +962,7 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 6. **Authorization:** Recipe updates require ownership verification
 7. **Timestamps:** All recipes include `createdAt` and `updatedAt` timestamps
 8. **Like Count:** Separate endpoint for updating like count without authorization requirements
-9. **Recipe Forking:** Fork functionality allows creating copies of recipes with optional modifications, similar to GitHub's fork feature 
+9. **Recipe Forking:** Fork functionality allows creating copies of recipes with optional modifications, similar to GitHub's fork feature
+10. **DTO Consistency:** All recipe endpoints now return `RecipeResponseDTO` objects consistently
+11. **User Recipe Filtering:** Dedicated endpoints for cooked and favourite recipes
+12. **Search Functionality:** Case-insensitive search with partial matching support 

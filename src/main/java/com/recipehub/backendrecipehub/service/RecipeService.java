@@ -28,24 +28,32 @@ public class RecipeService {
         this.userRepository = userRepository;
     }
 
-    public Recipe createRecipe(RecipeRequestDTO dto, User author, Recipe originalRecipe) {
+    public RecipeResponseDTO createRecipe(RecipeRequestDTO dto, User author, Recipe originalRecipe) {
         Recipe entity = RecipeMapper.toEntity(dto, author, originalRecipe);
-        return recipeRepository.save(entity);
+        Recipe savedRecipe = recipeRepository.save(entity);
+        return RecipeMapper.toDTO(savedRecipe);
     }
 
-    public List<Recipe> getAllRecipes() {
-        return recipeRepository.findAll();
+    public List<RecipeResponseDTO> getAllRecipes() {
+        List<Recipe> recipes = recipeRepository.findAll();
+        return recipes.stream()
+                .map(RecipeMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public List<Recipe> getAllPublicRecipes() {
-        return recipeRepository.findByIsPublicTrue();
+    public List<RecipeResponseDTO> getAllPublicRecipes() {
+        List<Recipe> recipes = recipeRepository.findByIsPublicTrue();
+        return recipes.stream()
+                .map(RecipeMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Optional<Recipe> getRecipeById(Long id) {
-        return recipeRepository.findById(id);
+    public Optional<RecipeResponseDTO> getRecipeById(Long id) {
+        Optional<Recipe> recipe = recipeRepository.findById(id);
+        return recipe.map(RecipeMapper::toDTO);
     }
 
-    public Recipe updateRecipe(Long id, RecipeRequestDTO dto, Long userId) {
+    public RecipeResponseDTO updateRecipe(Long id, RecipeRequestDTO dto, Long userId) {
         Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Recipe not found"));
         
@@ -59,7 +67,8 @@ public class RecipeService {
         // Update the updatedAt timestamp
         recipe.setUpdatedAt(LocalDateTime.now());
         
-        return recipeRepository.save(recipe);
+        Recipe savedRecipe = recipeRepository.save(recipe);
+        return RecipeMapper.toDTO(savedRecipe);
     }
 
     public RecipeResponseDTO updateRecipeWithValidation(Long id, RecipeRequestDTO dto, Long userId) {
@@ -67,8 +76,7 @@ public class RecipeService {
             throw new RuntimeException("User ID is required");
         }
         
-        Recipe updatedRecipe = updateRecipe(id, dto, userId);
-        return RecipeMapper.toDTO(updatedRecipe);
+        return updateRecipe(id, dto, userId);
     }
 
     public RecipeResponseDTO updateLikeCount(Long id, Integer likeCount) {
@@ -142,13 +150,15 @@ public class RecipeService {
         }
 
         // Use the existing createRecipe method
-        Recipe forkedRecipe = createRecipe(forkDTO, user, originalRecipe);
-        return RecipeMapper.toDTO(forkedRecipe);
+        return createRecipe(forkDTO, user, originalRecipe);
     }
 
     @Transactional(readOnly = true)
-    public List<Recipe> getRecipesByUserId(Long userId) {
-        return recipeRepository.findByAuthorId(userId);
+    public List<RecipeResponseDTO> getRecipesByUserId(Long userId) {
+        List<Recipe> recipes = recipeRepository.findByAuthorId(userId);
+        return recipes.stream()
+                .map(RecipeMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -163,20 +173,9 @@ public class RecipeService {
     @Transactional(readOnly = true)
     public List<RecipeResponseDTO> getRecipesByUserIdAsDTOs(Long userId) {
         try {
-            List<Recipe> recipes = getRecipesByUserId(userId);
+            List<RecipeResponseDTO> recipes = getRecipesByUserId(userId);
             System.out.println("Found " + recipes.size() + " recipes for user " + userId);
-            
-            return recipes.stream()
-                    .map(recipe -> {
-                        try {
-                            return RecipeMapper.toDTO(recipe);
-                        } catch (Exception e) {
-                            System.err.println("Error mapping recipe: " + e.getMessage());
-                            return null;
-                        }
-                    })
-                    .filter(dto -> dto != null)
-                    .collect(Collectors.toList());
+            return recipes;
         } catch (Exception e) {
             System.err.println("Error in getRecipesByUserIdAsDTOs: " + e.getMessage());
             e.printStackTrace();
@@ -184,6 +183,19 @@ public class RecipeService {
         }
     }
 
+    public List<RecipeResponseDTO> getUserCookedRecipes(Long userId) {
+        List<Recipe> recipes = recipeRepository.findByAuthorIdAndCookedTrue(userId);
+        return recipes.stream()
+                .map(RecipeMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<RecipeResponseDTO> getUserFavouriteRecipes(Long userId) {
+        List<Recipe> recipes = recipeRepository.findByAuthorIdAndFavouriteTrue(userId);
+        return recipes.stream()
+                .map(RecipeMapper::toDTO)
+                .collect(Collectors.toList());
+    }
     
     // Add more methods if needed
 }
