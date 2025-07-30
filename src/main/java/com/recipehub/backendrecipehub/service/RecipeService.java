@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,6 +40,42 @@ public class RecipeService {
 
     public Optional<Recipe> getRecipeById(Long id) {
         return recipeRepository.findById(id);
+    }
+
+    public Recipe updateRecipe(Long id, RecipeRequestDTO dto, Long userId) {
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Recipe not found"));
+        
+        // Check if the user is the author of the recipe
+        if (!recipe.getAuthor().getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized: Only the recipe author can update this recipe");
+        }
+        
+        RecipeMapper.updateEntity(dto, recipe);
+        
+        // Update the updatedAt timestamp
+        recipe.setUpdatedAt(LocalDateTime.now());
+        
+        return recipeRepository.save(recipe);
+    }
+
+    public RecipeResponseDTO updateRecipeWithValidation(Long id, RecipeRequestDTO dto, Long userId) {
+        if (userId == null) {
+            throw new RuntimeException("User ID is required");
+        }
+        
+        Recipe updatedRecipe = updateRecipe(id, dto, userId);
+        return RecipeMapper.toDTO(updatedRecipe);
+    }
+
+    public RecipeResponseDTO updateLikeCount(Long id, Integer likeCount) {
+        
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Recipe not found"));
+        recipe.setLikeCount(likeCount);
+        
+        Recipe savedRecipe = recipeRepository.save(recipe);
+        return RecipeMapper.toDTO(savedRecipe);
     }
 
     @Transactional(readOnly = true)
@@ -70,6 +107,7 @@ public class RecipeService {
             throw new RuntimeException("Failed to retrieve recipes for user: " + userId, e);
         }
     }
+
 
     // Add more methods if needed
 }

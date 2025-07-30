@@ -12,8 +12,8 @@ public class RecipeMapper {
                 .ingredients(dto.getIngredients().stream().map(RecipeMapper::mapIngredient).collect(Collectors.toList()))
                 .instructions(dto.getInstructions())
                 .isPublic(dto.getIsPublic())
-                .cooked(dto.isCooked())
-                .favourite(dto.isFavourite())
+                .cooked(dto.getCooked())
+                .favourite(dto.getFavourite())
                 .author(author)
                 .originalRecipe(originalRecipe)
                 .build();
@@ -52,5 +52,33 @@ public class RecipeMapper {
         dto.setUnit(ingredient.getUnit());
         dto.setQuantity(ingredient.getQuantity());
         return dto;
+    }
+
+    public static void updateEntity(RecipeRequestDTO dto, Recipe recipe) {
+        // Only update fields that are provided (not null)
+        if (dto.getTitle() != null) {
+            recipe.setTitle(dto.getTitle());
+        }
+        if (dto.getDescription() != null) {
+            recipe.setDescription(dto.getDescription());
+        }
+        if (dto.getIngredients() != null) {
+            recipe.setIngredients(dto.getIngredients().stream().map(RecipeMapper::mapIngredient).collect(Collectors.toList()));
+        }
+        if (dto.getInstructions() != null) {
+            recipe.setInstructions(dto.getInstructions());
+        }
+        if (dto.getIsPublic() != null) {
+            recipe.setPublic(dto.getIsPublic());
+        }
+        if (dto.getCooked() != null) {
+            recipe.setCooked(dto.getCooked());
+        }
+        if (dto.getFavourite() != null) {
+            recipe.setFavourite(dto.getFavourite());
+        }
+        if (dto.getLikeCount() != null) {
+            recipe.setLikeCount(dto.getLikeCount());
+        }
     }
 }

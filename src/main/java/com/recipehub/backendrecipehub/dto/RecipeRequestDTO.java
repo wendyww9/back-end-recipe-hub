@@ -9,18 +9,19 @@ public class RecipeRequestDTO {
     private String description;
     private List<IngredientDTO> ingredients;
     private List<String> instructions;
-    private boolean isPublic;
-    private boolean cooked;
-    private boolean favourite;
+    private Boolean isPublic;
+    private Boolean cooked;
+    private Boolean favourite;
+    private Integer likeCount;
     private Long authorId;
     private Long originalRecipeId;
     
     // Explicit getter and setter for isPublic to avoid Lombok naming conflicts
-    public boolean getIsPublic() {
+    public Boolean getIsPublic() {
         return isPublic;
     }
     
-    public void setIsPublic(boolean isPublic) {
+    public void setIsPublic(Boolean isPublic) {
         this.isPublic = isPublic;
     }
 }
