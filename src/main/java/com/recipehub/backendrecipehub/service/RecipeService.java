@@ -151,6 +151,14 @@ public class RecipeService {
         return recipeRepository.findByAuthorId(userId);
     }
 
+    @Transactional(readOnly = true)
+    public List<RecipeResponseDTO> searchByTitle(String title) {
+        List<Recipe> recipes = recipeRepository.findByTitleContainingIgnoreCase(title);
+        return recipes.stream()
+                .map(RecipeMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
     // Method to get recipes by user ID and convert to DTOs with error handling
     @Transactional(readOnly = true)
     public List<RecipeResponseDTO> getRecipesByUserIdAsDTOs(Long userId) {
@@ -176,6 +184,6 @@ public class RecipeService {
         }
     }
 
-
+    
     // Add more methods if needed
 }
