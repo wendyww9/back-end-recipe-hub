@@ -51,7 +51,15 @@ public class RecipeController {
 
     @GetMapping
     public List<RecipeResponseDTO> getAllRecipes() {
-        return recipeService.getAllRecipes()
+        return recipeService.getAllPublicRecipes()
+                .stream()
+                .map(RecipeMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/public")
+    public List<RecipeResponseDTO> getAllPublicRecipes() {
+        return recipeService.getAllPublicRecipes()
                 .stream()
                 .map(RecipeMapper::toDTO)
                 .collect(Collectors.toList());
@@ -62,13 +70,5 @@ public class RecipeController {
         Recipe recipe = recipeService.getRecipeById(id)
                 .orElseThrow(() -> new RuntimeException("Recipe not found"));
         return ResponseEntity.ok(RecipeMapper.toDTO(recipe));
-    }
-
-    @GetMapping("/public")
-    public List<RecipeResponseDTO> getPublicRecipes() {
-        return recipeService.getPublicRecipes()
-                .stream()
-                .map(RecipeMapper::toDTO)
-                .collect(Collectors.toList());
     }
 }
