@@ -390,7 +390,83 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 
 ---
 
-### 14. Get Recipe by ID
+### 14. Search Recipes by Title
+**GET** `/api/recipes/search`
+
+**Request Parameters:**
+- `title` (query parameter): The search term to find in recipe titles (string)
+
+**Request Body:** None
+
+**Example Request:**
+```
+GET /api/recipes/search?title=chocolate
+```
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "title": "Chocolate Cake",
+    "description": "A delicious chocolate cake recipe",
+    "ingredients": [
+      {
+        "name": "Chocolate",
+        "unit": "cups",
+        "quantity": 2.0
+      }
+    ],
+    "instructions": ["Mix chocolate", "Bake at 350F"],
+    "isPublic": true,
+    "cooked": false,
+    "favourite": false,
+    "likeCount": 0,
+    "authorId": 1,
+    "authorUsername": "string",
+    "originalRecipeId": null,
+    "createdAt": "2025-07-29T21:51:22.106186",
+    "updatedAt": "2025-07-29T21:51:22.108822"
+  },
+  {
+    "id": 2,
+    "title": "Hot Chocolate",
+    "description": "Warm chocolate drink",
+    "ingredients": [
+      {
+        "name": "Cocoa Powder",
+        "unit": "tbsp",
+        "quantity": 2.0
+      }
+    ],
+    "instructions": ["Mix cocoa with hot milk"],
+    "isPublic": false,
+    "cooked": true,
+    "favourite": true,
+    "likeCount": 5,
+    "authorId": 2,
+    "authorUsername": "string2",
+    "originalRecipeId": null,
+    "createdAt": "2025-07-29T21:52:15.123456",
+    "updatedAt": "2025-07-29T21:52:15.123456"
+  }
+]
+```
+
+**Empty Response (200 OK):**
+```json
+[]
+```
+
+**Key Features:**
+- **Case-Insensitive:** Search is not case-sensitive (e.g., "chocolate" matches "Chocolate")
+- **Partial Matching:** Uses `LIKE` query with wildcards (e.g., "choc" matches "Chocolate")
+- **All Recipes:** Returns both public and private recipes that match the search term
+- **Empty Results:** Returns empty array `[]` when no matches are found
+
+---
+
+### 15. Get Recipe by ID
 **GET** `/api/recipes/{id}`
 
 **Request Body:** None
@@ -430,7 +506,7 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 
 ---
 
-### 15. Update Recipe
+### 16. Update Recipe
 **PUT** `/api/recipes/{id}`
 
 **Request Body (Partial Update Supported):**
@@ -487,7 +563,7 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 
 ---
 
-### 16. Update Recipe Like Count
+### 17. Update Recipe Like Count
 **PUT** `/api/recipes/{id}/likecount`
 
 **Request Parameters:**
@@ -538,6 +614,139 @@ PUT /api/recipes/1/likecount?likeCount=15
 - Frontend-driven: Frontend sends the final like count value
 - Does not update the recipe's `updatedAt` timestamp
 - Simple count update without affecting recipe content
+
+---
+
+### 18. Fork Recipe
+**POST** `/api/recipes/{id}/fork`
+
+**Description:** Creates a copy of an existing recipe with optional modifications. Similar to GitHub's fork functionality.
+
+**Request Body (Optional - for modifications):**
+```json
+{
+  "title": "string",
+  "description": "string",
+  "ingredients": [
+    {
+      "name": "string",
+      "unit": "string",
+      "quantity": 1.0
+    }
+  ],
+  "instructions": ["string"],
+  "isPublic": true,
+  "cooked": false,
+  "favourite": false
+}
+```
+*Note: All fields are optional. If not provided, the forked recipe will be an exact copy of the original.*
+
+**Example Requests:**
+
+**Fork without modifications:**
+```
+POST /api/recipes/1/fork
+Content-Type: application/json
+
+{}
+```
+
+**Fork with modifications:**
+```
+POST /api/recipes/1/fork
+Content-Type: application/json
+
+{
+  "title": "My Modified Version",
+  "description": "A personalized version of the original recipe",
+  "ingredients": [
+    {
+      "name": "Flour",
+      "unit": "cups",
+      "quantity": 3.0
+    },
+    {
+      "name": "Sugar",
+      "unit": "cups", 
+      "quantity": 1.5
+    },
+    {
+      "name": "Vanilla",
+      "unit": "tsp",
+      "quantity": 1.0
+    }
+  ],
+  "instructions": [
+    "Mix flour and sugar",
+    "Add vanilla extract",
+    "Bake at 375F for 25 minutes"
+  ],
+  "isPublic": false,
+  "cooked": true,
+  "favourite": true
+}
+```
+
+**Response Body (200 OK):**
+```json
+{
+  "id": 2,
+  "title": "My Modified Version",
+  "description": "A personalized version of the original recipe",
+  "ingredients": [
+    {
+      "name": "Flour",
+      "unit": "cups",
+      "quantity": 3.0
+    },
+    {
+      "name": "Sugar",
+      "unit": "cups",
+      "quantity": 1.5
+    },
+    {
+      "name": "Vanilla",
+      "unit": "tsp",
+      "quantity": 1.0
+    }
+  ],
+  "instructions": [
+    "Mix flour and sugar",
+    "Add vanilla extract", 
+    "Bake at 375F for 25 minutes"
+  ],
+  "isPublic": false,
+  "cooked": true,
+  "favourite": true,
+  "likeCount": 0,
+  "authorId": 1,
+  "authorUsername": "testuser",
+  "originalRecipeId": 1,
+  "createdAt": "2025-07-30T09:13:23.133444",
+  "updatedAt": "2025-07-30T09:13:23.136118"
+}
+```
+
+**Error Responses:**
+- **400 Bad Request:** Recipe to fork not found, User not found, or invalid request data
+- **404 Not Found:** Recipe with specified ID doesn't exist
+
+**Key Features:**
+- **Content Copying:** Copies all content from the recipe being forked (like GitHub)
+- **Optional Modifications:** Can apply changes during forking process
+- **Original Recipe Tracking:** `originalRecipeId` always points to the root original recipe
+- **Like Count Reset:** New forks start with `likeCount: 0`
+- **Author Assignment:** Forked recipe is assigned to the user performing the fork
+- **Fork Chain Support:** Can fork any recipe in a chain, always pointing back to the original
+
+**Fork Chain Example:**
+```
+Original Recipe (ID: 1) ← originalRecipeId: null
+├── Fork 1 (ID: 2) ← originalRecipeId: 1
+├── Modified Fork (ID: 3) ← originalRecipeId: 1
+└── Fork of Fork (ID: 4) ← originalRecipeId: 1
+```
 
 ---
 
@@ -628,4 +837,5 @@ PUT /api/recipes/1/likecount?likeCount=15
 5. **Privacy:** Recipe endpoints respect privacy settings (public/private recipes)
 6. **Authorization:** Recipe updates require ownership verification
 7. **Timestamps:** All recipes include `createdAt` and `updatedAt` timestamps
-8. **Like Count:** Separate endpoint for updating like count without authorization requirements 
+8. **Like Count:** Separate endpoint for updating like count without authorization requirements
+9. **Recipe Forking:** Fork functionality allows creating copies of recipes with optional modifications, similar to GitHub's fork feature 

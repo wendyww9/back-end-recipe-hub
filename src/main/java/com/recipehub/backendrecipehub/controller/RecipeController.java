@@ -66,6 +66,11 @@ public class RecipeController {
                 .collect(Collectors.toList());
     }
 
+    @GetMapping("/search")
+    public List<RecipeResponseDTO> searchByTitle(@RequestParam String title) {
+        return recipeService.searchByTitle(title);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<RecipeResponseDTO> getById(@PathVariable Long id) {
         Recipe recipe = recipeService.getRecipeById(id)
