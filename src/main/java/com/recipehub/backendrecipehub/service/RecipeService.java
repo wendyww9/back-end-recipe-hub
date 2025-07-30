@@ -1,12 +1,13 @@
 package com.recipehub.backendrecipehub.service;
 
+import com.recipehub.backendrecipehub.dto.IngredientDTO;
 import com.recipehub.backendrecipehub.dto.RecipeRequestDTO;
 import com.recipehub.backendrecipehub.dto.RecipeResponseDTO;
 import com.recipehub.backendrecipehub.mapper.RecipeMapper;
+import com.recipehub.backendrecipehub.model.Ingredient;
 import com.recipehub.backendrecipehub.model.Recipe;
 import com.recipehub.backendrecipehub.model.User;
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
-
 import com.recipehub.backendrecipehub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,8 +22,10 @@ import java.util.stream.Collectors;
 public class RecipeService {
 
     private final RecipeRepository recipeRepository;
-    public  RecipeService(RecipeRepository recipeRepository) {
+    private final UserRepository userRepository;
+    public  RecipeService(RecipeRepository recipeRepository, UserRepository userRepository) {
         this.recipeRepository = recipeRepository;
+        this.userRepository = userRepository;
     }
 
     public Recipe createRecipe(RecipeRequestDTO dto, User author, Recipe originalRecipe) {
@@ -76,6 +79,71 @@ public class RecipeService {
         
         Recipe savedRecipe = recipeRepository.save(recipe);
         return RecipeMapper.toDTO(savedRecipe);
+    }
+
+    public RecipeResponseDTO forkRecipe(Long recipeToForkId, RecipeRequestDTO modifications, Long userId) {
+        // Find the recipe being forked
+        Recipe recipeToFork = recipeRepository.findById(recipeToForkId)
+                .orElseThrow(() -> new RuntimeException("Recipe to fork not found"));
+
+        // Find the user who is forking
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Determine the original recipe
+        Recipe originalRecipe = recipeToFork.getOriginalRecipe();
+        if (originalRecipe == null) {
+            // If the recipe being forked has no original, it is the original
+            originalRecipe = recipeToFork;
+        }
+
+        // Create a DTO from the recipe being forked
+        RecipeRequestDTO forkDTO = new RecipeRequestDTO();
+        forkDTO.setTitle(recipeToFork.getTitle());
+        forkDTO.setDescription(recipeToFork.getDescription());
+        forkDTO.setIngredients(recipeToFork.getIngredients().stream()
+                .map(ingredient -> {
+                    IngredientDTO ingredientDTO = new IngredientDTO();
+                    ingredientDTO.setName(ingredient.getName());
+                    ingredientDTO.setUnit(ingredient.getUnit());
+                    ingredientDTO.setQuantity(ingredient.getQuantity());
+                    return ingredientDTO;
+                })
+                .collect(Collectors.toList()));
+        forkDTO.setInstructions(recipeToFork.getInstructions());
+        forkDTO.setIsPublic(recipeToFork.isPublic());
+        forkDTO.setCooked(recipeToFork.isCooked());
+        forkDTO.setFavourite(recipeToFork.isFavourite());
+        forkDTO.setLikeCount(0); // Reset like count for new fork
+
+        // Apply modifications if provided
+        if (modifications != null) {
+            if (modifications.getTitle() != null) {
+                forkDTO.setTitle(modifications.getTitle());
+            }
+            if (modifications.getDescription() != null) {
+                forkDTO.setDescription(modifications.getDescription());
+            }
+            if (modifications.getIngredients() != null) {
+                forkDTO.setIngredients(modifications.getIngredients());
+            }
+            if (modifications.getInstructions() != null) {
+                forkDTO.setInstructions(modifications.getInstructions());
+            }
+            if (modifications.getIsPublic() != null) {
+                forkDTO.setIsPublic(modifications.getIsPublic());
+            }
+            if (modifications.getCooked() != null) {
+                forkDTO.setCooked(modifications.getCooked());
+            }
+            if (modifications.getFavourite() != null) {
+                forkDTO.setFavourite(modifications.getFavourite());
+            }
+        }
+
+        // Use the existing createRecipe method
+        Recipe forkedRecipe = createRecipe(forkDTO, user, originalRecipe);
+        return RecipeMapper.toDTO(forkedRecipe);
     }
 
     @Transactional(readOnly = true)

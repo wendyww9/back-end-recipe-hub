@@ -103,6 +103,21 @@ public class RecipeController {
             return ResponseEntity.ok(recipeService.updateLikeCount(id, likeCount));
     }
 
+    @PostMapping("/{id}/fork")
+    public ResponseEntity<RecipeResponseDTO> forkRecipe(
+        @PathVariable Long id,
+        @RequestBody(required = false) RecipeRequestDTO modifications) {
+        try {
+            // TODO: Get actual user ID from authentication context
+            // For now, we'll use a default user ID of 1
+            Long userId = 1L;
+            RecipeResponseDTO forkedRecipe = recipeService.forkRecipe(id, modifications, userId);
+            return ResponseEntity.ok(forkedRecipe);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("Controller is working!");
