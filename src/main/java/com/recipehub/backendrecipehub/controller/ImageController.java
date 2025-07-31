@@ -13,6 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/images")
+@CrossOrigin(origins = "*")
 @ConditionalOnBean(S3Client.class)
 public class ImageController {
 
