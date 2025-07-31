@@ -2,7 +2,7 @@ package com.recipehub.backendrecipehub.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.recipehub.backendrecipehub.dto.RecipeBookDTO;
-import com.recipehub.backendrecipehub.dto.UserDTO;
+import com.recipehub.backendrecipehub.dto.UserRequestDTO;
 import com.recipehub.backendrecipehub.model.User;
 import com.recipehub.backendrecipehub.repository.RecipeBookRepository;
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
@@ -63,11 +63,14 @@ class RecipeBookControllerIntegrationTest {
         userRepository.deleteAll();
         
         // Use UserService to properly encode password
-        UserDTO userDTO = new UserDTO();
-        userDTO.setUsername("testuser");
-        userDTO.setEmail("test@example.com");
-        userDTO.setPassword("password");
-        testUser = userService.registerUser(userDTO);
+        UserRequestDTO userRequestDTO = new UserRequestDTO();
+        userRequestDTO.setUsername("testuser");
+        userRequestDTO.setEmail("test@example.com");
+        userRequestDTO.setPassword("password");
+        userService.registerUser(userRequestDTO);
+        
+        // Get the created user from repository
+        testUser = userRepository.findByUsername("testuser").orElse(null);
     }
 
     @Test

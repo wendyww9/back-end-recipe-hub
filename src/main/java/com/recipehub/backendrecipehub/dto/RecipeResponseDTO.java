@@ -15,8 +15,8 @@ public class RecipeResponseDTO {
     private boolean cooked;
     private boolean favourite;
     private int likeCount;
-    private Long userId;
-    private String userUsername;
+    private Long authorId;
+    private String authorUsername;
     private Long originalRecipeId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

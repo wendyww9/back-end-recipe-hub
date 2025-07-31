@@ -40,8 +40,8 @@ public class RecipeService {
 
     public RecipeResponseDTO createRecipeWithValidation(RecipeRequestDTO dto) {
         // Find the user
-        User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new UserNotFoundException(dto.getUserId()));
+        User user = userRepository.findById(dto.getAuthorId())
+                .orElseThrow(() -> new UserNotFoundException(dto.getAuthorId()));
 
         // Find the original recipe if specified
         Recipe originalRecipe = null;
@@ -77,7 +77,7 @@ public class RecipeService {
                 .orElseThrow(() -> new RecipeNotFoundException(id));
         
         // Check if the user is the owner of the recipe
-        if (!recipe.getUser().getId().equals(userId)) {
+        if (!recipe.getAuthor().getId().equals(userId)) {
             throw new UnauthorizedException("Only the recipe owner can update this recipe");
         }
         
@@ -173,7 +173,7 @@ public class RecipeService {
 
     @Transactional(readOnly = true)
     public List<RecipeResponseDTO> getRecipesByUserId(Long userId) {
-        List<Recipe> recipes = recipeRepository.findByUserId(userId);
+        List<Recipe> recipes = recipeRepository.findByAuthorId(userId);
         return recipes.stream()
                 .map(RecipeMapper::toDTO)
                 .collect(Collectors.toList());
@@ -190,14 +190,14 @@ public class RecipeService {
 
 
     public List<RecipeResponseDTO> getUserCookedRecipes(Long userId) {
-        List<Recipe> recipes = recipeRepository.findByUserIdAndCookedTrue(userId);
+        List<Recipe> recipes = recipeRepository.findByAuthorIdAndCookedTrue(userId);
         return recipes.stream()
                 .map(RecipeMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     public List<RecipeResponseDTO> getUserFavouriteRecipes(Long userId) {
-        List<Recipe> recipes = recipeRepository.findByUserIdAndFavouriteTrue(userId);
+        List<Recipe> recipes = recipeRepository.findByAuthorIdAndFavouriteTrue(userId);
         return recipes.stream()
                 .map(RecipeMapper::toDTO)
                 .collect(Collectors.toList());

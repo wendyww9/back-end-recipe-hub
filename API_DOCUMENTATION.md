@@ -26,10 +26,10 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
   "id": 1,
   "username": "string",
   "email": "string",
-  "password": "string",
   "createdAt": "2025-07-29T21:51:22.106186"
 }
 ```
+*Note: Password is excluded from response*
 
 **Error Response (400 Bad Request):**
 ```json
@@ -107,7 +107,9 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 
 **Error Response (401 Unauthorized):**
 ```json
-{}
+{
+  "message": "Authentication required"
+}
 ```
 
 ---
@@ -252,8 +254,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
     "cooked": false,
     "favourite": false,
     "likeCount": 0,
-    "userId": 1,
-    "userUsername": "string",
+    "authorId": 1,
+    "authorUsername": "string",
     "originalRecipeId": null,
     "createdAt": "2025-07-29T21:51:22.106186",
     "updatedAt": "2025-07-29T21:51:22.108822"
@@ -308,8 +310,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
     "cooked": true,
     "favourite": true,
     "likeCount": 0,
-    "userId": 2,
-    "userUsername": "david",
+    "authorId": 2,
+    "authorUsername": "david",
     "originalRecipeId": null,
     "createdAt": "2025-07-24T11:49:14.582689",
     "updatedAt": "2025-07-24T11:49:14.611497"
@@ -367,8 +369,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
     "cooked": false,
     "favourite": true,
     "likeCount": 5,
-    "userId": 1,
-    "userUsername": "alice",
+    "authorId": 1,
+    "authorUsername": "alice",
     "originalRecipeId": null,
     "createdAt": "2025-07-24T11:22:10.63407",
     "updatedAt": "2025-07-30T11:34:42.626025"
@@ -440,7 +442,7 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
   "isPublic": true,
   "cooked": false,
   "favourite": false,
-  "userId": 1 (required),
+  "authorId": 1 (required),
   "originalRecipeId": null
 }
 ```
@@ -463,8 +465,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
   "cooked": false,
   "favourite": false,
   "likeCount": 0,
-  "userId": 1,
-  "userUsername": "string",
+  "authorId": 1,
+  "authorUsername": "string",
   "originalRecipeId": null,
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:22.108822"
@@ -501,8 +503,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
     "cooked": false,
     "favourite": false,
     "likeCount": 0,
-    "userId": 1,
-    "userUsername": "string",
+    "authorId": 1,
+    "authorUsername": "string",
     "originalRecipeId": null,
     "createdAt": "2025-07-29T21:51:22.106186",
     "updatedAt": "2025-07-29T21:51:22.108822"
@@ -541,8 +543,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
     "cooked": false,
     "favourite": false,
     "likeCount": 0,
-    "userId": 1,
-    "userUsername": "string",
+    "authorId": 1,
+    "authorUsername": "string",
     "originalRecipeId": null,
     "createdAt": "2025-07-29T21:51:22.106186",
     "updatedAt": "2025-07-29T21:51:22.108822"
@@ -589,8 +591,8 @@ GET /api/recipes/search?title=chocolate
     "cooked": false,
     "favourite": false,
     "likeCount": 0,
-    "userId": 1,
-    "userUsername": "string",
+    "authorId": 1,
+    "authorUsername": "string",
     "originalRecipeId": null,
     "createdAt": "2025-07-29T21:51:22.106186",
     "updatedAt": "2025-07-29T21:51:22.108822"
@@ -611,8 +613,8 @@ GET /api/recipes/search?title=chocolate
     "cooked": true,
     "favourite": true,
     "likeCount": 5,
-    "userId": 2,
-    "userUsername": "string2",
+    "authorId": 2,
+    "authorUsername": "string2",
     "originalRecipeId": null,
     "createdAt": "2025-07-29T21:52:15.123456",
     "updatedAt": "2025-07-29T21:52:15.123456"
@@ -657,8 +659,8 @@ GET /api/recipes/search?title=chocolate
   "cooked": false,
   "favourite": false,
   "likeCount": 0,
-  "userId": 1,
-  "userUsername": "string",
+  "authorId": 1,
+  "authorUsername": "string",
   "originalRecipeId": null,
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:22.108822"
@@ -716,8 +718,8 @@ GET /api/recipes/search?title=chocolate
   "cooked": true,
   "favourite": true,
   "likeCount": 0,
-  "userId": 1,
-  "userUsername": "string",
+  "authorId": 1,
+  "authorUsername": "string",
   "originalRecipeId": null,
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:29.499094"
@@ -762,8 +764,8 @@ PUT /api/recipes/1/likecount?likeCount=15
   "cooked": false,
   "favourite": false,
   "likeCount": 15,
-  "userId": 1,
-  "userUsername": "string",
+  "authorId": 1,
+  "authorUsername": "string",
   "originalRecipeId": null,
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:22.108822"
@@ -888,8 +890,8 @@ Content-Type: application/json
   "cooked": true,
   "favourite": true,
   "likeCount": 0,
-  "userId": 1,
-  "userUsername": "testuser",
+  "authorId": 1,
+  "authorUsername": "testuser",
   "originalRecipeId": 1,
   "createdAt": "2025-07-30T09:13:23.133444",
   "updatedAt": "2025-07-30T09:13:23.136118"
@@ -1097,7 +1099,7 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 
 ## Data Transfer Objects (DTOs)
 
-### UserDTO
+### UserRequestDTO
 ```json
 {
   "username": "string (required, 3-50 characters)",
@@ -1105,6 +1107,17 @@ Original Recipe (ID: 1) ← originalRecipeId: null
   "password": "string (required, 6-100 characters)"
 }
 ```
+
+### UserResponseDTO
+```json
+{
+  "id": 1,
+  "username": "string",
+  "email": "string",
+  "createdAt": "2025-07-29T21:51:22.106186"
+}
+```
+*Note: Password is never included in response DTOs for security reasons*
 
 ### RecipeRequestDTO
 ```json
@@ -1122,7 +1135,7 @@ Original Recipe (ID: 1) ← originalRecipeId: null
   "isPublic": true,
   "cooked": false,
   "favourite": false,
-  "userId": 1 (required),
+  "authorId": 1 (required),
   "originalRecipeId": null
 }
 ```
@@ -1145,8 +1158,8 @@ Original Recipe (ID: 1) ← originalRecipeId: null
   "cooked": false,
   "favourite": false,
   "likeCount": 0,
-  "userId": 1,
-  "userUsername": "string",
+  "authorId": 1,
+  "authorUsername": "string",
   "originalRecipeId": null,
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:22.108822"
@@ -1205,7 +1218,7 @@ Original Recipe (ID: 1) ← originalRecipeId: null
   - **unit:** Required, 1-50 characters
   - **quantity:** Required, minimum 0.1
 - **instructions:** Required, at least 1 instruction
-- **userId:** Required, positive integer
+- **authorId:** Required, positive integer
 
 ### Recipe Book Validation
 - **name:** Required, 1-255 characters
@@ -1245,18 +1258,20 @@ All error responses follow a consistent format:
 ## Notes
 
 1. **Authentication:** Currently using HTTP Basic Authentication
-2. **CORS:** Enabled for all origins (`*`)
-3. **Database:** Uses H2 in-memory database for development, PostgreSQL for production
-4. **Partial Updates:** Recipe and Recipe Book update endpoints support partial updates (only send fields you want to change)
-5. **Privacy:** Recipe and Recipe Book endpoints respect privacy settings (public/private)
-6. **Authorization:** Recipe and Recipe Book updates require ownership verification
-7. **Timestamps:** All recipes include `createdAt` and `updatedAt` timestamps
-8. **Like Count:** Separate endpoint for updating like count without authorization requirements
-9. **Recipe Forking:** Fork functionality allows creating copies of recipes with optional modifications, similar to GitHub's fork feature
-10. **DTO Consistency:** All endpoints now return consistent DTO objects
-11. **User Recipe Filtering:** Dedicated endpoints for cooked and favourite recipes
-12. **Search Functionality:** Case-insensitive search with partial matching support
-13. **Recipe Books:** New feature for organizing recipes into collections
-14. **Validation:** Comprehensive input validation with detailed error messages
-15. **Error Handling:** Global exception handling with consistent error response format
-16. **Business Logic Separation:** Controllers are now purely REST endpoints with business logic moved to services 
+2. **Password Security:** Passwords are never returned in any API responses for security reasons
+3. **User DTOs:** User endpoints use separate RequestDTO (for input) and ResponseDTO (for output) to ensure password security
+4. **CORS:** Enabled for all origins (`*`)
+5. **Database:** Uses H2 in-memory database for development, PostgreSQL for production
+6. **Partial Updates:** Recipe and Recipe Book update endpoints support partial updates (only send fields you want to change)
+7. **Privacy:** Recipe and Recipe Book endpoints respect privacy settings (public/private)
+8. **Authorization:** Recipe and Recipe Book updates require ownership verification
+9. **Timestamps:** All recipes include `createdAt` and `updatedAt` timestamps
+10. **Like Count:** Separate endpoint for updating like count without authorization requirements
+11. **Recipe Forking:** Fork functionality allows creating copies of recipes with optional modifications, similar to GitHub's fork feature
+12. **DTO Consistency:** All endpoints now return consistent DTO objects
+13. **User Recipe Filtering:** Dedicated endpoints for cooked and favourite recipes
+14. **Search Functionality:** Case-insensitive search with partial matching support
+15. **Recipe Books:** New feature for organizing recipes into collections
+16. **Validation:** Comprehensive input validation with detailed error messages
+17. **Error Handling:** Global exception handling with consistent error response format
+18. **Business Logic Separation:** Controllers are now purely REST endpoints with business logic moved to services 

@@ -1,8 +1,8 @@
 package com.recipehub.backendrecipehub.controller;
 
 
-import com.recipehub.backendrecipehub.dto.UserDTO;
-import com.recipehub.backendrecipehub.model.User;
+import com.recipehub.backendrecipehub.dto.UserRequestDTO;
+import com.recipehub.backendrecipehub.dto.UserResponseDTO;
 import com.recipehub.backendrecipehub.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,16 +25,16 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody UserDTO userDTO) {
-        User created = userService.registerUser(userDTO);
+    public ResponseEntity<UserResponseDTO> registerUser(@RequestBody UserRequestDTO userRequestDTO) {
+        UserResponseDTO created = userService.registerUser(userRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody UserDTO userDTO) {
+    public ResponseEntity<String> login(@RequestBody UserRequestDTO userRequestDTO) {
         // Try username first, then email if username is null
-        String usernameOrEmail = userDTO.getUsername() != null ? userDTO.getUsername() : userDTO.getEmail();
-        boolean success = userService.login(usernameOrEmail, userDTO.getPassword());
+        String usernameOrEmail = userRequestDTO.getUsername() != null ? userRequestDTO.getUsername() : userRequestDTO.getEmail();
+        boolean success = userService.login(usernameOrEmail, userRequestDTO.getPassword());
         if (success) {
             return ResponseEntity.ok("Login successful");
         } else {

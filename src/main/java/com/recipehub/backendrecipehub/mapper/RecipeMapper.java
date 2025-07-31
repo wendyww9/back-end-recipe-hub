@@ -14,7 +14,7 @@ public class RecipeMapper {
                 .isPublic(dto.getIsPublic())
                 .cooked(dto.getCooked())
                 .favourite(dto.getFavourite())
-                .user(user)
+                .author(user)
                 .originalRecipe(originalRecipe)
                 .build();
     }
@@ -30,8 +30,8 @@ public class RecipeMapper {
         dto.setCooked(recipe.isCooked());
         dto.setFavourite(recipe.isFavourite());
         dto.setLikeCount(recipe.getLikeCount());
-        dto.setUserId(recipe.getUser().getId());
-        dto.setUserUsername(recipe.getUser().getUsername());
+        dto.setAuthorId(recipe.getAuthor().getId());
+        dto.setAuthorUsername(recipe.getAuthor().getUsername());
         dto.setOriginalRecipeId(recipe.getOriginalRecipe() != null ? recipe.getOriginalRecipe().getId() : null);
         dto.setCreatedAt(recipe.getCreatedAt());
         dto.setUpdatedAt(recipe.getUpdatedAt());
