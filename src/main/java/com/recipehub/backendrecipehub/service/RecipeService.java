@@ -6,6 +6,7 @@ import com.recipehub.backendrecipehub.dto.RecipeResponseDTO;
 import com.recipehub.backendrecipehub.exception.RecipeNotFoundException;
 import com.recipehub.backendrecipehub.exception.UnauthorizedException;
 import com.recipehub.backendrecipehub.exception.UserNotFoundException;
+import com.recipehub.backendrecipehub.exception.ValidationException;
 import com.recipehub.backendrecipehub.mapper.RecipeMapper;
 import com.recipehub.backendrecipehub.model.Ingredient;
 import com.recipehub.backendrecipehub.model.Recipe;
@@ -31,10 +32,25 @@ public class RecipeService {
         this.userRepository = userRepository;
     }
 
-    public RecipeResponseDTO createRecipe(RecipeRequestDTO dto, User author, Recipe originalRecipe) {
-        Recipe entity = RecipeMapper.toEntity(dto, author, originalRecipe);
+    public RecipeResponseDTO createRecipe(RecipeRequestDTO dto, User user, Recipe originalRecipe) {
+        Recipe entity = RecipeMapper.toEntity(dto, user, originalRecipe);
         Recipe savedRecipe = recipeRepository.save(entity);
         return RecipeMapper.toDTO(savedRecipe);
+    }
+
+    public RecipeResponseDTO createRecipeWithValidation(RecipeRequestDTO dto) {
+        // Find the user
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new UserNotFoundException(dto.getUserId()));
+
+        // Find the original recipe if specified
+        Recipe originalRecipe = null;
+        if (dto.getOriginalRecipeId() != null) {
+            originalRecipe = recipeRepository.findById(dto.getOriginalRecipeId())
+                    .orElseThrow(() -> new RecipeNotFoundException(dto.getOriginalRecipeId()));
+        }
+
+        return createRecipe(dto, user, originalRecipe);
     }
 
     public List<RecipeResponseDTO> getAllRecipes() {
@@ -60,9 +76,9 @@ public class RecipeService {
         Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
         
-        // Check if the user is the author of the recipe
-        if (!recipe.getAuthor().getId().equals(userId)) {
-            throw new UnauthorizedException("Only the recipe author can update this recipe");
+        // Check if the user is the owner of the recipe
+        if (!recipe.getUser().getId().equals(userId)) {
+            throw new UnauthorizedException("Only the recipe owner can update this recipe");
         }
         
         RecipeMapper.updateEntity(dto, recipe);
@@ -76,7 +92,7 @@ public class RecipeService {
 
     public RecipeResponseDTO updateRecipeWithValidation(Long id, RecipeRequestDTO dto, Long userId) {
         if (userId == null) {
-            throw new RuntimeException("User ID is required");
+            throw new ValidationException("User ID is required");
         }
         
         return updateRecipe(id, dto, userId);
@@ -157,7 +173,7 @@ public class RecipeService {
 
     @Transactional(readOnly = true)
     public List<RecipeResponseDTO> getRecipesByUserId(Long userId) {
-        List<Recipe> recipes = recipeRepository.findByAuthorId(userId);
+        List<Recipe> recipes = recipeRepository.findByUserId(userId);
         return recipes.stream()
                 .map(RecipeMapper::toDTO)
                 .collect(Collectors.toList());
@@ -174,14 +190,14 @@ public class RecipeService {
 
 
     public List<RecipeResponseDTO> getUserCookedRecipes(Long userId) {
-        List<Recipe> recipes = recipeRepository.findByAuthorIdAndCookedTrue(userId);
+        List<Recipe> recipes = recipeRepository.findByUserIdAndCookedTrue(userId);
         return recipes.stream()
                 .map(RecipeMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     public List<RecipeResponseDTO> getUserFavouriteRecipes(Long userId) {
-        List<Recipe> recipes = recipeRepository.findByAuthorIdAndFavouriteTrue(userId);
+        List<Recipe> recipes = recipeRepository.findByUserIdAndFavouriteTrue(userId);
         return recipes.stream()
                 .map(RecipeMapper::toDTO)
                 .collect(Collectors.toList());
