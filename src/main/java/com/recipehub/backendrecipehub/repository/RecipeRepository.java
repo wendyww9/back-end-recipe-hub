@@ -19,11 +19,11 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     List<Recipe> findByIsPublicTrue();
 
     // Method naming convention (cleaner)
-    List<Recipe> findByAuthorId(Long authorId);
-    List<Recipe> findByAuthorIdAndCookedTrue(Long authorId);
-    List<Recipe> findByAuthorIdAndFavouriteTrue(Long authorId);
+    List<Recipe> findByUserId(Long userId);
+    List<Recipe> findByUserIdAndCookedTrue(Long userId);
+    List<Recipe> findByUserIdAndFavouriteTrue(Long userId);
 
-    // Alternative 2: Keep @Query for complex cases (if needed)
+    // Alternative: @Query for complex cases 
     // @Query("SELECT r FROM Recipe r WHERE r.author.id = :authorId")
     // List<Recipe> findByAuthorId(Long authorId);
 
