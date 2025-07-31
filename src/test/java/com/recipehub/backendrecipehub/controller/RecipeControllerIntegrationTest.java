@@ -1,6 +1,7 @@
 package com.recipehub.backendrecipehub.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.recipehub.backendrecipehub.dto.IngredientDTO;
 import com.recipehub.backendrecipehub.dto.RecipeRequestDTO;
 import com.recipehub.backendrecipehub.dto.UserDTO;
 import com.recipehub.backendrecipehub.model.User;
@@ -20,6 +21,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -89,15 +91,27 @@ class RecipeControllerIntegrationTest {
 
     @Test
     void testCreateRecipe() throws Exception {
+        // Create valid ingredients
+        List<IngredientDTO> ingredients = new ArrayList<>();
+        IngredientDTO ingredient = new IngredientDTO();
+        ingredient.setName("Test Ingredient");
+        ingredient.setUnit("cup");
+        ingredient.setQuantity(1.0);
+        ingredients.add(ingredient);
+
+        // Create valid instructions
+        List<String> instructions = new ArrayList<>();
+        instructions.add("Test instruction step 1");
+
         RecipeRequestDTO recipeRequest = new RecipeRequestDTO();
         recipeRequest.setTitle("Test Recipe");
         recipeRequest.setDescription("Test Description");
-        recipeRequest.setAuthorId(testUser.getId());
+        recipeRequest.setUserId(testUser.getId());
         recipeRequest.setIsPublic(true);
         recipeRequest.setCooked(false);
         recipeRequest.setFavourite(false);
-        recipeRequest.setIngredients(new ArrayList<>());
-        recipeRequest.setInstructions(new ArrayList<>());
+        recipeRequest.setIngredients(ingredients);
+        recipeRequest.setInstructions(instructions);
 
         mockMvc.perform(post("/api/recipes")
                 .contentType(MediaType.APPLICATION_JSON)

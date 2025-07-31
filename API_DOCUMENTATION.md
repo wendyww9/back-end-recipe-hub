@@ -14,9 +14,9 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 **Request Body:**
 ```json
 {
-  "username": "string",
-  "email": "string",
-  "password": "string"
+  "username": "string (required, 3-50 characters)",
+  "email": "string (required, valid email format)",
+  "password": "string (required, 6-100 characters)"
 }
 ```
 
@@ -35,6 +35,14 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 ```json
 {
   "message": "User already exists"
+}
+```
+
+**Validation Errors:**
+```json
+{
+  "message": "Validation error",
+  "details": "username: Username must be between 3 and 50 characters, email: must be a valid email address, password: Password must be between 6 and 100 characters"
 }
 ```
 
@@ -121,7 +129,9 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 
 **Error Response (404 Not Found):**
 ```json
-{}
+{
+  "message": "User not found with id: 1"
+}
 ```
 
 ---
@@ -157,8 +167,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 **Request Body:**
 ```json
 {
-  "currentPassword": "string",
-  "newPassword": "string"
+  "currentPassword": "string (required)",
+  "newPassword": "string (required, 6-100 characters)"
 }
 ```
 
@@ -172,10 +182,9 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 }
 ```
 
-**Error Response (400 Bad Request):**
-```json
-"Current password is incorrect"
-```
+**Error Responses:**
+- **400 Bad Request:** `"Current password and new password are required"`
+- **401 Unauthorized:** `"Current password is incorrect"`
 
 ---
 
@@ -185,8 +194,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 **Request Body:**
 ```json
 {
-  "currentPassword": "string",
-  "newEmail": "string"
+  "currentPassword": "string (required)",
+  "newEmail": "string (required, valid email format)"
 }
 ```
 
@@ -200,10 +209,10 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 }
 ```
 
-**Error Response (400 Bad Request):**
-```json
-"Current password is incorrect"
-```
+**Error Responses:**
+- **400 Bad Request:** `"Current password and new email are required"`
+- **401 Unauthorized:** `"Current password is incorrect"`
+- **409 Conflict:** `"Email already exists"`
 
 ---
 
@@ -243,8 +252,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
     "cooked": false,
     "favourite": false,
     "likeCount": 0,
-    "authorId": 1,
-    "authorUsername": "string",
+    "userId": 1,
+    "userUsername": "string",
     "originalRecipeId": null,
     "createdAt": "2025-07-29T21:51:22.106186",
     "updatedAt": "2025-07-29T21:51:22.108822"
@@ -252,9 +261,11 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 ]
 ```
 
-**Error Response (500 Internal Server Error):**
+**Error Response (404 Not Found):**
 ```json
-{}
+{
+  "message": "User not found with id: 1"
+}
 ```
 
 ---
@@ -297,8 +308,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
     "cooked": true,
     "favourite": true,
     "likeCount": 0,
-    "authorId": 2,
-    "authorUsername": "david",
+    "userId": 2,
+    "userUsername": "david",
     "originalRecipeId": null,
     "createdAt": "2025-07-24T11:49:14.582689",
     "updatedAt": "2025-07-24T11:49:14.611497"
@@ -356,8 +367,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
     "cooked": false,
     "favourite": true,
     "likeCount": 5,
-    "authorId": 1,
-    "authorUsername": "alice",
+    "userId": 1,
+    "userUsername": "alice",
     "originalRecipeId": null,
     "createdAt": "2025-07-24T11:22:10.63407",
     "updatedAt": "2025-07-30T11:34:42.626025"
@@ -372,28 +383,64 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 
 ---
 
+### 13. Get User Recipe Books
+**GET** `/api/users/{userId}/recipe-books`
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "name": "My Breakfast Recipes",
+    "description": "Collection of my favorite breakfast recipes",
+    "isPublic": true,
+    "userId": 1,
+    "recipeIds": [1, 2, 3]
+  },
+  {
+    "id": 2,
+    "name": "Private Collection",
+    "description": "My private recipe collection",
+    "isPublic": false,
+    "userId": 1,
+    "recipeIds": [4, 5]
+  }
+]
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "message": "User not found with id: 1"
+}
+```
+
+---
+
 ## Recipe Management Endpoints (`/api/recipes`)
 
-### 13. Create Recipe
+### 14. Create Recipe
 **POST** `/api/recipes`
 
 **Request Body:**
 ```json
 {
-  "title": "string",
-  "description": "string",
+  "title": "string (required, 1-255 characters)",
+  "description": "string (optional, max 1000 characters)",
   "ingredients": [
     {
-      "name": "string",
-      "unit": "string",
-      "quantity": 1.0
+      "name": "string (required, 1-100 characters)",
+      "unit": "string (required, 1-50 characters)",
+      "quantity": 1.0 (required, minimum 0.1)
     }
-  ],
-  "instructions": ["string"],
+  ] (required, at least 1 ingredient),
+  "instructions": ["string"] (required, at least 1 instruction),
   "isPublic": true,
   "cooked": false,
   "favourite": false,
-  "authorId": 1,
+  "userId": 1 (required),
   "originalRecipeId": null
 }
 ```
@@ -416,24 +463,21 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
   "cooked": false,
   "favourite": false,
   "likeCount": 0,
-  "authorId": 1,
-  "authorUsername": "string",
+  "userId": 1,
+  "userUsername": "string",
   "originalRecipeId": null,
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:22.108822"
 }
 ```
 
-**Error Response (400 Bad Request):**
-```json
-{
-  "message": "Author not found"
-}
-```
+**Error Responses:**
+- **400 Bad Request:** `"User not found"` or validation errors
+- **400 Bad Request:** `"Validation error"` with specific field validation details
 
 ---
 
-### 14. Get All Recipes
+### 15. Get All Recipes
 **GET** `/api/recipes`
 
 **Request Body:** None
@@ -457,8 +501,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
     "cooked": false,
     "favourite": false,
     "likeCount": 0,
-    "authorId": 1,
-    "authorUsername": "string",
+    "userId": 1,
+    "userUsername": "string",
     "originalRecipeId": null,
     "createdAt": "2025-07-29T21:51:22.106186",
     "updatedAt": "2025-07-29T21:51:22.108822"
@@ -469,11 +513,11 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 **Key Features:**
 - **All Recipes:** Returns both public and private recipes
 - **DTO Format:** Returns `RecipeResponseDTO` objects with complete recipe information
-- **Author Information:** Includes author details for each recipe
+- **User Information:** Includes user details for each recipe
 
 ---
 
-### 15. Get All Public Recipes
+### 16. Get All Public Recipes
 **GET** `/api/recipes/public`
 
 **Request Body:** None
@@ -497,8 +541,8 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
     "cooked": false,
     "favourite": false,
     "likeCount": 0,
-    "authorId": 1,
-    "authorUsername": "string",
+    "userId": 1,
+    "userUsername": "string",
     "originalRecipeId": null,
     "createdAt": "2025-07-29T21:51:22.106186",
     "updatedAt": "2025-07-29T21:51:22.108822"
@@ -509,11 +553,11 @@ Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com
 **Key Features:**
 - **Public Only:** Returns only recipes where `isPublic: true`
 - **DTO Format:** Returns `RecipeResponseDTO` objects with complete recipe information
-- **Author Information:** Includes author details for each recipe
+- **User Information:** Includes user details for each recipe
 
 ---
 
-### 16. Search Recipes by Title
+### 17. Search Recipes by Title
 **GET** `/api/recipes/search`
 
 **Request Parameters:**
@@ -545,8 +589,8 @@ GET /api/recipes/search?title=chocolate
     "cooked": false,
     "favourite": false,
     "likeCount": 0,
-    "authorId": 1,
-    "authorUsername": "string",
+    "userId": 1,
+    "userUsername": "string",
     "originalRecipeId": null,
     "createdAt": "2025-07-29T21:51:22.106186",
     "updatedAt": "2025-07-29T21:51:22.108822"
@@ -567,8 +611,8 @@ GET /api/recipes/search?title=chocolate
     "cooked": true,
     "favourite": true,
     "likeCount": 5,
-    "authorId": 2,
-    "authorUsername": "string2",
+    "userId": 2,
+    "userUsername": "string2",
     "originalRecipeId": null,
     "createdAt": "2025-07-29T21:52:15.123456",
     "updatedAt": "2025-07-29T21:52:15.123456"
@@ -590,7 +634,7 @@ GET /api/recipes/search?title=chocolate
 
 ---
 
-### 17. Get Recipe by ID
+### 18. Get Recipe by ID
 **GET** `/api/recipes/{id}`
 
 **Request Body:** None
@@ -613,8 +657,8 @@ GET /api/recipes/search?title=chocolate
   "cooked": false,
   "favourite": false,
   "likeCount": 0,
-  "authorId": 1,
-  "authorUsername": "string",
+  "userId": 1,
+  "userUsername": "string",
   "originalRecipeId": null,
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:22.108822"
@@ -624,32 +668,32 @@ GET /api/recipes/search?title=chocolate
 **Error Response (404 Not Found):**
 ```json
 {
-  "message": "Recipe not found"
+  "message": "Recipe not found with id: 1"
 }
 ```
 
 ---
 
-### 18. Update Recipe
+### 19. Update Recipe
 **PUT** `/api/recipes/{id}`
 
 **Request Body (Partial Update Supported):**
 ```json
 {
-  "title": "string",
-  "description": "string",
+  "title": "string (optional, 1-255 characters)",
+  "description": "string (optional, max 1000 characters)",
   "ingredients": [
     {
-      "name": "string",
-      "unit": "string",
-      "quantity": 1.0
+      "name": "string (required, 1-100 characters)",
+      "unit": "string (required, 1-50 characters)",
+      "quantity": 1.0 (required, minimum 0.1)
     }
-  ],
-  "instructions": ["string"],
+  ] (optional, at least 1 ingredient if provided),
+  "instructions": ["string"] (optional, at least 1 instruction if provided),
   "isPublic": true,
   "cooked": false,
   "favourite": false,
-  "authorId": 1
+  "userId": 1
 }
 ```
 *Note: All fields are optional for partial updates*
@@ -672,8 +716,8 @@ GET /api/recipes/search?title=chocolate
   "cooked": true,
   "favourite": true,
   "likeCount": 0,
-  "authorId": 1,
-  "authorUsername": "string",
+  "userId": 1,
+  "userUsername": "string",
   "originalRecipeId": null,
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:29.499094"
@@ -681,13 +725,13 @@ GET /api/recipes/search?title=chocolate
 ```
 
 **Error Responses:**
-- **403 Forbidden:** Unauthorized (not the recipe owner)
-- **404 Not Found:** Recipe doesn't exist
-- **400 Bad Request:** Invalid request data
+- **403 Forbidden:** `"Only the recipe owner can update this recipe"`
+- **404 Not Found:** `"Recipe not found with id: 1"`
+- **400 Bad Request:** `"Validation error"` with specific field validation details
 
 ---
 
-### 19. Update Recipe Like Count
+### 20. Update Recipe Like Count
 **PUT** `/api/recipes/{id}/likecount`
 
 **Request Parameters:**
@@ -718,8 +762,8 @@ PUT /api/recipes/1/likecount?likeCount=15
   "cooked": false,
   "favourite": false,
   "likeCount": 15,
-  "authorId": 1,
-  "authorUsername": "string",
+  "userId": 1,
+  "userUsername": "string",
   "originalRecipeId": null,
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:22.108822"
@@ -729,7 +773,7 @@ PUT /api/recipes/1/likecount?likeCount=15
 **Error Response (404 Not Found):**
 ```json
 {
-  "message": "Recipe not found"
+  "message": "Recipe not found with id: 1"
 }
 ```
 
@@ -741,7 +785,7 @@ PUT /api/recipes/1/likecount?likeCount=15
 
 ---
 
-### 20. Fork Recipe
+### 21. Fork Recipe
 **POST** `/api/recipes/{id}/fork`
 
 **Description:** Creates a copy of an existing recipe with optional modifications. Similar to GitHub's fork functionality.
@@ -749,16 +793,16 @@ PUT /api/recipes/1/likecount?likeCount=15
 **Request Body (Optional - for modifications):**
 ```json
 {
-  "title": "string",
-  "description": "string",
+  "title": "string (optional, 1-255 characters)",
+  "description": "string (optional, max 1000 characters)",
   "ingredients": [
     {
-      "name": "string",
-      "unit": "string",
-      "quantity": 1.0
+      "name": "string (required, 1-100 characters)",
+      "unit": "string (required, 1-50 characters)",
+      "quantity": 1.0 (required, minimum 0.1)
     }
-  ],
-  "instructions": ["string"],
+  ] (optional, at least 1 ingredient if provided),
+  "instructions": ["string"] (optional, at least 1 instruction if provided),
   "isPublic": true,
   "cooked": false,
   "favourite": false
@@ -844,8 +888,8 @@ Content-Type: application/json
   "cooked": true,
   "favourite": true,
   "likeCount": 0,
-  "authorId": 1,
-  "authorUsername": "testuser",
+  "userId": 1,
+  "userUsername": "testuser",
   "originalRecipeId": 1,
   "createdAt": "2025-07-30T09:13:23.133444",
   "updatedAt": "2025-07-30T09:13:23.136118"
@@ -853,15 +897,15 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
-- **400 Bad Request:** Recipe to fork not found, User not found, or invalid request data
-- **404 Not Found:** Recipe with specified ID doesn't exist
+- **400 Bad Request:** `"Recipe to fork not found"`, `"User not found"`, or validation errors
+- **404 Not Found:** `"Recipe not found with id: 1"`
 
 **Key Features:**
 - **Content Copying:** Copies all content from the recipe being forked (like GitHub)
 - **Optional Modifications:** Can apply changes during forking process
 - **Original Recipe Tracking:** `originalRecipeId` always points to the root original recipe
 - **Like Count Reset:** New forks start with `likeCount: 0`
-- **Author Assignment:** Forked recipe is assigned to the user performing the fork
+- **User Assignment:** Forked recipe is assigned to the user performing the fork
 - **Fork Chain Support:** Can fork any recipe in a chain, always pointing back to the original
 
 **Fork Chain Example:**
@@ -874,34 +918,211 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 
 ---
 
+## Recipe Book Management Endpoints (`/api/recipebooks`)
+
+### 22. Create Recipe Book
+**POST** `/api/recipebooks`
+
+**Request Parameters:**
+- `userId` (query parameter): The ID of the user creating the recipe book (required, positive integer)
+
+**Request Body:**
+```json
+{
+  "name": "string (required, 1-255 characters)",
+  "description": "string (optional, max 1000 characters)",
+  "isPublic": true,
+  "userId": 1 (required),
+  "recipeIds": [1, 2, 3] (optional, array of recipe IDs)
+}
+```
+
+**Response Body (200 OK):**
+```json
+{
+  "id": 1,
+  "name": "My Breakfast Recipes",
+  "description": "Collection of my favorite breakfast recipes",
+  "isPublic": true,
+  "userId": 1,
+  "recipeIds": [1, 2, 3]
+}
+```
+
+**Error Responses:**
+- **400 Bad Request:** `"User not found with id: 1"` or validation errors
+- **400 Bad Request:** `"Validation error"` with specific field validation details
+
+---
+
+### 23. Get All Recipe Books
+**GET** `/api/recipebooks`
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "name": "My Breakfast Recipes",
+    "description": "Collection of my favorite breakfast recipes",
+    "isPublic": true,
+    "userId": 1,
+    "recipeIds": [1, 2, 3]
+  },
+  {
+    "id": 2,
+    "name": "Private Collection",
+    "description": "My private recipe collection",
+    "isPublic": false,
+    "userId": 1,
+    "recipeIds": [4, 5]
+  }
+]
+```
+
+---
+
+### 24. Get All Public Recipe Books
+**GET** `/api/recipebooks/public`
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "name": "My Breakfast Recipes",
+    "description": "Collection of my favorite breakfast recipes",
+    "isPublic": true,
+    "userId": 1,
+    "recipeIds": [1, 2, 3]
+  }
+]
+```
+
+**Key Features:**
+- **Public Only:** Returns only recipe books where `isPublic: true`
+- **DTO Format:** Returns `RecipeBookDTO` objects with complete recipe book information
+
+---
+
+### 25. Get Recipe Book by ID
+**GET** `/api/recipebooks/{id}`
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+{
+  "id": 1,
+  "name": "My Breakfast Recipes",
+  "description": "Collection of my favorite breakfast recipes",
+  "isPublic": true,
+  "userId": 1,
+  "recipeIds": [1, 2, 3]
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "message": "Recipe book not found with id: 1"
+}
+```
+
+---
+
+### 26. Update Recipe Book
+**PUT** `/api/recipebooks/{id}`
+
+**Request Parameters:**
+- `userId` (query parameter): The ID of the user updating the recipe book (optional, positive integer)
+
+**Request Body (Partial Update Supported):**
+```json
+{
+  "name": "string (optional, 1-255 characters)",
+  "description": "string (optional, max 1000 characters)",
+  "isPublic": true,
+  "recipeIds": [1, 2, 3] (optional, array of recipe IDs)
+}
+```
+*Note: All fields are optional for partial updates. The recipeIds array replaces the entire list of recipes in the book.*
+
+**Response Body (200 OK):**
+```json
+{
+  "id": 1,
+  "name": "Updated Recipe Book Name",
+  "description": "Updated description",
+  "isPublic": false,
+  "userId": 1,
+  "recipeIds": [1, 2, 4, 5]
+}
+```
+
+**Error Responses:**
+- **403 Forbidden:** `"Only the recipe book owner can update this recipe book"`
+- **404 Not Found:** `"Recipe book not found with id: 1"` or `"Recipe not found with id: 1"`
+- **400 Bad Request:** `"Validation error"` with specific field validation details
+
+**Key Features:**
+- **Authorization Required:** Only the recipe book owner can update it
+- **Recipe Management:** The `recipeIds` array completely replaces the current recipe list
+- **Partial Updates:** Only send the fields you want to change
+
+---
+
+### 27. Delete Recipe Book
+**DELETE** `/api/recipebooks/{id}`
+
+**Request Parameters:**
+- `userId` (query parameter): The ID of the user deleting the recipe book (required, positive integer)
+
+**Request Body:** None
+
+**Response Body (204 No Content):**
+```json
+{}
+```
+
+**Error Responses:**
+- **403 Forbidden:** `"Only the recipe book owner can delete this recipe book"`
+- **404 Not Found:** `"Recipe book not found with id: 1"`
+
+---
+
 ## Data Transfer Objects (DTOs)
 
 ### UserDTO
 ```json
 {
-  "username": "string",
-  "email": "string",
-  "password": "string"
+  "username": "string (required, 3-50 characters)",
+  "email": "string (required, valid email format)",
+  "password": "string (required, 6-100 characters)"
 }
 ```
 
 ### RecipeRequestDTO
 ```json
 {
-  "title": "string",
-  "description": "string",
+  "title": "string (required, 1-255 characters)",
+  "description": "string (optional, max 1000 characters)",
   "ingredients": [
     {
-      "name": "string",
-      "unit": "string",
-      "quantity": 1.0
+      "name": "string (required, 1-100 characters)",
+      "unit": "string (required, 1-50 characters)",
+      "quantity": 1.0 (required, minimum 0.1)
     }
-  ],
-  "instructions": ["string"],
+  ] (required, at least 1 ingredient),
+  "instructions": ["string"] (required, at least 1 instruction),
   "isPublic": true,
   "cooked": false,
   "favourite": false,
-  "authorId": 1,
+  "userId": 1 (required),
   "originalRecipeId": null
 }
 ```
@@ -924,8 +1145,8 @@ Original Recipe (ID: 1) ← originalRecipeId: null
   "cooked": false,
   "favourite": false,
   "likeCount": 0,
-  "authorId": 1,
-  "authorUsername": "string",
+  "userId": 1,
+  "userUsername": "string",
   "originalRecipeId": null,
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:22.108822"
@@ -935,34 +1156,107 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 ### IngredientDTO
 ```json
 {
-  "name": "string",
-  "unit": "string",
-  "quantity": 1.0
+  "name": "string (required, 1-100 characters)",
+  "unit": "string (required, 1-50 characters)",
+  "quantity": 1.0 (required, minimum 0.1)
 }
 ```
+
+### RecipeBookDTO
+```json
+{
+  "id": 1,
+  "name": "string (required, 1-255 characters)",
+  "description": "string (optional, max 1000 characters)",
+  "isPublic": true,
+  "userId": 1 (required),
+  "recipeIds": [1, 2, 3] (optional, array of recipe IDs)
+}
+```
+
+### PasswordUpdateDTO
+```json
+{
+  "currentPassword": "string (required)",
+  "newPassword": "string (required, 6-100 characters)"
+}
+```
+
+### EmailUpdateDTO
+```json
+{
+  "currentPassword": "string (required)",
+  "newEmail": "string (required, valid email format)"
+}
+```
+
+## Validation Rules
+
+### User Validation
+- **username:** Required, 3-50 characters
+- **email:** Required, valid email format
+- **password:** Required, 6-100 characters
+
+### Recipe Validation
+- **title:** Required, 1-255 characters
+- **description:** Optional, max 1000 characters
+- **ingredients:** Required, at least 1 ingredient
+  - **name:** Required, 1-100 characters
+  - **unit:** Required, 1-50 characters
+  - **quantity:** Required, minimum 0.1
+- **instructions:** Required, at least 1 instruction
+- **userId:** Required, positive integer
+
+### Recipe Book Validation
+- **name:** Required, 1-255 characters
+- **description:** Optional, max 1000 characters
+- **userId:** Required, positive integer
+
+### Password/Email Update Validation
+- **currentPassword:** Required
+- **newPassword:** Required, 6-100 characters
+- **newEmail:** Required, valid email format
 
 ## HTTP Status Codes
 
 - **200 OK:** Request successful
 - **201 Created:** Resource created successfully
 - **204 No Content:** Request successful, no content to return
-- **400 Bad Request:** Invalid request data
-- **401 Unauthorized:** Authentication required
-- **403 Forbidden:** Access denied
+- **400 Bad Request:** Invalid request data or validation errors
+- **401 Unauthorized:** Authentication required or invalid credentials
+- **403 Forbidden:** Access denied (not the owner)
 - **404 Not Found:** Resource not found
+- **409 Conflict:** Resource already exists (e.g., duplicate email)
 - **500 Internal Server Error:** Server error
+
+## Error Response Format
+
+All error responses follow a consistent format:
+
+```json
+{
+  "message": "Error type",
+  "details": "Detailed error message",
+  "timestamp": "2025-07-31T00:37:15.044Z",
+  "status": 400
+}
+```
 
 ## Notes
 
 1. **Authentication:** Currently using HTTP Basic Authentication
 2. **CORS:** Enabled for all origins (`*`)
 3. **Database:** Uses H2 in-memory database for development, PostgreSQL for production
-4. **Partial Updates:** Recipe update endpoint supports partial updates (only send fields you want to change)
-5. **Privacy:** Recipe endpoints respect privacy settings (public/private recipes)
-6. **Authorization:** Recipe updates require ownership verification
+4. **Partial Updates:** Recipe and Recipe Book update endpoints support partial updates (only send fields you want to change)
+5. **Privacy:** Recipe and Recipe Book endpoints respect privacy settings (public/private)
+6. **Authorization:** Recipe and Recipe Book updates require ownership verification
 7. **Timestamps:** All recipes include `createdAt` and `updatedAt` timestamps
 8. **Like Count:** Separate endpoint for updating like count without authorization requirements
 9. **Recipe Forking:** Fork functionality allows creating copies of recipes with optional modifications, similar to GitHub's fork feature
-10. **DTO Consistency:** All recipe endpoints now return `RecipeResponseDTO` objects consistently
+10. **DTO Consistency:** All endpoints now return consistent DTO objects
 11. **User Recipe Filtering:** Dedicated endpoints for cooked and favourite recipes
-12. **Search Functionality:** Case-insensitive search with partial matching support 
+12. **Search Functionality:** Case-insensitive search with partial matching support
+13. **Recipe Books:** New feature for organizing recipes into collections
+14. **Validation:** Comprehensive input validation with detailed error messages
+15. **Error Handling:** Global exception handling with consistent error response format
+16. **Business Logic Separation:** Controllers are now purely REST endpoints with business logic moved to services 

@@ -2,9 +2,11 @@ package com.recipehub.backendrecipehub.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.recipehub.backendrecipehub.dto.UserDTO;
+import com.recipehub.backendrecipehub.dto.PasswordUpdateDTO;
+import com.recipehub.backendrecipehub.dto.EmailUpdateDTO;
 import com.recipehub.backendrecipehub.model.User;
-import com.recipehub.backendrecipehub.repository.RecipeRepository;
 import com.recipehub.backendrecipehub.repository.UserRepository;
+import com.recipehub.backendrecipehub.repository.RecipeRepository;
 import com.recipehub.backendrecipehub.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -99,9 +101,9 @@ class UserControllerIntegrationTest {
 
     @Test
     void testUpdatePassword() throws Exception {
-        Map<String, String> passwordUpdate = new HashMap<>();
-        passwordUpdate.put("currentPassword", "password");
-        passwordUpdate.put("newPassword", "newpassword");
+        PasswordUpdateDTO passwordUpdate = new PasswordUpdateDTO();
+        passwordUpdate.setCurrentPassword("password");
+        passwordUpdate.setNewPassword("newpassword");
 
         mockMvc.perform(put("/api/users/" + testUser.getId() + "/password")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -111,9 +113,9 @@ class UserControllerIntegrationTest {
 
     @Test
     void testUpdateEmail() throws Exception {
-        Map<String, String> emailUpdate = new HashMap<>();
-        emailUpdate.put("currentPassword", "password");
-        emailUpdate.put("newEmail", "newemail@example.com");
+        EmailUpdateDTO emailUpdate = new EmailUpdateDTO();
+        emailUpdate.setCurrentPassword("password");
+        emailUpdate.setNewEmail("newemail@example.com");
 
         mockMvc.perform(put("/api/users/" + testUser.getId() + "/email")
                 .contentType(MediaType.APPLICATION_JSON)

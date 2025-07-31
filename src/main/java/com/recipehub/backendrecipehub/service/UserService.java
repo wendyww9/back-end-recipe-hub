@@ -1,8 +1,12 @@
 package com.recipehub.backendrecipehub.service;
 
 import com.recipehub.backendrecipehub.dto.UserDTO;
+import com.recipehub.backendrecipehub.dto.PasswordUpdateDTO;
+import com.recipehub.backendrecipehub.dto.EmailUpdateDTO;
 import com.recipehub.backendrecipehub.exception.DuplicateResourceException;
 import com.recipehub.backendrecipehub.exception.UserNotFoundException;
+import com.recipehub.backendrecipehub.exception.ValidationException;
+import com.recipehub.backendrecipehub.exception.InvalidCredentialsException;
 import com.recipehub.backendrecipehub.model.User;
 import com.recipehub.backendrecipehub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -137,20 +141,20 @@ public class UserService {
     }
 
 
-    public User updatePassword(Long userId, Map<String, String> updatePasswordMap) {
+    public User updatePassword(Long userId, PasswordUpdateDTO updatePasswordDTO) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
         
-        String currentPassword = updatePasswordMap.get("currentPassword");
-        String newPassword = updatePasswordMap.get("newPassword");
+        String currentPassword = updatePasswordDTO.getCurrentPassword();
+        String newPassword = updatePasswordDTO.getNewPassword();
         
         if (currentPassword == null || newPassword == null) {
-            throw new RuntimeException("Current password and new password are required");
+            throw new ValidationException("Current password and new password are required");
         }
         
         // Verify current password
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Current password is incorrect");
+            throw new InvalidCredentialsException("Current password is incorrect");
         }
         
         // Update password
@@ -158,20 +162,20 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User updateEmail(Long userId, Map<String, String> updateEmailMap) {
+    public User updateEmail(Long userId, EmailUpdateDTO updateEmailDTO) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
         
-        String currentPassword = updateEmailMap.get("currentPassword");
-        String newEmail = updateEmailMap.get("newEmail");
+        String currentPassword = updateEmailDTO.getCurrentPassword();
+        String newEmail = updateEmailDTO.getNewEmail();
         
         if (currentPassword == null || newEmail == null) {
-            throw new RuntimeException("Current password and new email are required");
+            throw new ValidationException("Current password and new email are required");
         }
         
         // Verify current password
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Current password is incorrect");
+            throw new InvalidCredentialsException("Current password is incorrect");
         }
         
         // Check if new email already exists
