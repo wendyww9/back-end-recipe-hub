@@ -13,7 +13,7 @@ import com.recipehub.backendrecipehub.model.RecipeBook;
 import com.recipehub.backendrecipehub.model.Recipe;
 import com.recipehub.backendrecipehub.model.User;
 import com.recipehub.backendrecipehub.dto.RecipeBookDTO;
-import com.recipehub.backendrecipehub.dto.UserDTO;
+import com.recipehub.backendrecipehub.dto.UserRequestDTO;
 import com.recipehub.backendrecipehub.mapper.RecipeBookMapper;
 
 import java.util.HashSet;

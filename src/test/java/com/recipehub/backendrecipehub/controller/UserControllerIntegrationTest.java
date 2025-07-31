@@ -1,9 +1,8 @@
 package com.recipehub.backendrecipehub.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.recipehub.backendrecipehub.dto.UserDTO;
-import com.recipehub.backendrecipehub.dto.PasswordUpdateDTO;
-import com.recipehub.backendrecipehub.dto.EmailUpdateDTO;
+import com.recipehub.backendrecipehub.dto.UserRequestDTO;
+import com.recipehub.backendrecipehub.dto.UserUpdateDTO;
 import com.recipehub.backendrecipehub.model.User;
 import com.recipehub.backendrecipehub.repository.UserRepository;
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
@@ -56,11 +55,14 @@ class UserControllerIntegrationTest {
         userRepository.deleteAll();
         
         // Use UserService to properly encode password
-        UserDTO userDTO = new UserDTO();
-        userDTO.setUsername("testuser");
-        userDTO.setEmail("test@example.com");
-        userDTO.setPassword("password");
-        testUser = userService.registerUser(userDTO);
+        UserRequestDTO userRequestDTO = new UserRequestDTO();
+        userRequestDTO.setUsername("testuser");
+        userRequestDTO.setEmail("test@example.com");
+        userRequestDTO.setPassword("password");
+        userService.registerUser(userRequestDTO);
+        
+        // Get the created user from repository
+        testUser = userRepository.findByUsername("testuser").orElse(null);
     }
 
     @Test
@@ -101,7 +103,7 @@ class UserControllerIntegrationTest {
 
     @Test
     void testUpdatePassword() throws Exception {
-        PasswordUpdateDTO passwordUpdate = new PasswordUpdateDTO();
+        UserUpdateDTO passwordUpdate = new UserUpdateDTO();
         passwordUpdate.setCurrentPassword("password");
         passwordUpdate.setNewPassword("newpassword");
 
@@ -113,9 +115,9 @@ class UserControllerIntegrationTest {
 
     @Test
     void testUpdateEmail() throws Exception {
-        EmailUpdateDTO emailUpdate = new EmailUpdateDTO();
+        UserUpdateDTO emailUpdate = new UserUpdateDTO();
         emailUpdate.setCurrentPassword("password");
-        emailUpdate.setNewEmail("newemail@example.com");
+        emailUpdate.setEmail("newemail@example.com");
 
         mockMvc.perform(put("/api/users/" + testUser.getId() + "/email")
                 .contentType(MediaType.APPLICATION_JSON)

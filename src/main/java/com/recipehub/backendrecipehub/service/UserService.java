@@ -1,8 +1,9 @@
 package com.recipehub.backendrecipehub.service;
 
-import com.recipehub.backendrecipehub.dto.UserDTO;
-import com.recipehub.backendrecipehub.dto.PasswordUpdateDTO;
-import com.recipehub.backendrecipehub.dto.EmailUpdateDTO;
+import com.recipehub.backendrecipehub.dto.UserRequestDTO;
+import com.recipehub.backendrecipehub.dto.UserResponseDTO;
+import com.recipehub.backendrecipehub.dto.UserUpdateDTO;
+import com.recipehub.backendrecipehub.mapper.UserMapper;
 import com.recipehub.backendrecipehub.exception.DuplicateResourceException;
 import com.recipehub.backendrecipehub.exception.UserNotFoundException;
 import com.recipehub.backendrecipehub.exception.ValidationException;
@@ -29,24 +30,23 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User registerUser(UserDTO userDTO) {
+    public UserResponseDTO registerUser(UserRequestDTO userRequestDTO) {
         // Check if username already exists
-        if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
-            throw new DuplicateResourceException("Username", userDTO.getUsername());
+        if (userRepository.findByUsername(userRequestDTO.getUsername()).isPresent()) {
+            throw new DuplicateResourceException("Username", userRequestDTO.getUsername());
         }
         
         // Check if email already exists
-        if (userRepository.findByEmail(userDTO.getEmail()).isPresent()) {
-            throw new DuplicateResourceException("Email", userDTO.getEmail());
+        if (userRepository.findByEmail(userRequestDTO.getEmail()).isPresent()) {
+            throw new DuplicateResourceException("Email", userRequestDTO.getEmail());
         }
         
         // Convert DTO to User entity
-        User user = new User();
-        user.setUsername(userDTO.getUsername());
-        user.setEmail(userDTO.getEmail());
-        user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        User user = UserMapper.toEntity(userRequestDTO);
+        user.setPassword(passwordEncoder.encode(userRequestDTO.getPassword()));
         
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        return UserMapper.toResponseDTO(savedUser);
     }
 
     public User save(User user) {
@@ -123,6 +123,11 @@ public class UserService {
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
     }
+    
+    public Optional<UserResponseDTO> findByIdAsDTO(Long id) {
+        return userRepository.findById(id)
+                .map(UserMapper::toResponseDTO);
+    }
 
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
@@ -135,57 +140,92 @@ public class UserService {
     public List<User> findAll() {
         return userRepository.findAll();
     }
+    
+    public List<UserResponseDTO> findAllAsDTO() {
+        return userRepository.findAll().stream()
+                .map(UserMapper::toResponseDTO)
+                .collect(java.util.stream.Collectors.toList());
+    }
 
     public void deleteById(Long id) {
         userRepository.deleteById(id);
     }
 
 
-    public User updatePassword(Long userId, PasswordUpdateDTO updatePasswordDTO) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(userId));
-        
-        String currentPassword = updatePasswordDTO.getCurrentPassword();
-        String newPassword = updatePasswordDTO.getNewPassword();
-        
-        if (currentPassword == null || newPassword == null) {
-            throw new ValidationException("Current password and new password are required");
+    public UserResponseDTO updatePassword(Long userId, UserUpdateDTO updateDTO) {
+        if (updateDTO.getNewPassword() == null || updateDTO.getNewPassword().trim().isEmpty()) {
+            throw new ValidationException("New password is required");
         }
         
-        // Verify current password
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new InvalidCredentialsException("Current password is incorrect");
-        }
+        UserUpdateDTO passwordUpdate = new UserUpdateDTO();
+        passwordUpdate.setNewPassword(updateDTO.getNewPassword());
+        passwordUpdate.setCurrentPassword(updateDTO.getCurrentPassword());
         
-        // Update password
-        user.setPassword(passwordEncoder.encode(newPassword));
-        return userRepository.save(user);
+        return updateUser(userId, passwordUpdate);
     }
 
-    public User updateEmail(Long userId, EmailUpdateDTO updateEmailDTO) {
+    public UserResponseDTO updateEmail(Long userId, UserUpdateDTO updateDTO) {
+        if (updateDTO.getEmail() == null || updateDTO.getEmail().trim().isEmpty()) {
+            throw new ValidationException("New email is required");
+        }
+        
+        UserUpdateDTO emailUpdate = new UserUpdateDTO();
+        emailUpdate.setEmail(updateDTO.getEmail());
+        emailUpdate.setCurrentPassword(updateDTO.getCurrentPassword());
+        
+        return updateUser(userId, emailUpdate);
+    }
+
+    public UserResponseDTO updateUser(Long userId, UserUpdateDTO updateDTO) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
         
-        String currentPassword = updateEmailDTO.getCurrentPassword();
-        String newEmail = updateEmailDTO.getNewEmail();
-        
-        if (currentPassword == null || newEmail == null) {
-            throw new ValidationException("Current password and new email are required");
+        // Verify current password is provided
+        if (updateDTO.getCurrentPassword() == null || updateDTO.getCurrentPassword().trim().isEmpty()) {
+            throw new ValidationException("Current password is required for any user update");
         }
         
         // Verify current password
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+        if (!passwordEncoder.matches(updateDTO.getCurrentPassword(), user.getPassword())) {
             throw new InvalidCredentialsException("Current password is incorrect");
         }
         
-        // Check if new email already exists
-        if (userRepository.findByEmail(newEmail).isPresent()) {
-            throw new DuplicateResourceException("Email", newEmail);
+        boolean hasChanges = false;
+        
+        // Update username if provided
+        if (updateDTO.getUsername() != null && !updateDTO.getUsername().trim().isEmpty()) {
+            // Check if username already exists (excluding current user)
+            if (!updateDTO.getUsername().equals(user.getUsername()) && 
+                userRepository.findByUsername(updateDTO.getUsername()).isPresent()) {
+                throw new DuplicateResourceException("Username", updateDTO.getUsername());
+            }
+            user.setUsername(updateDTO.getUsername());
+            hasChanges = true;
         }
         
-        // Update email
-        user.setEmail(newEmail);
-        return userRepository.save(user);
+        // Update email if provided
+        if (updateDTO.getEmail() != null && !updateDTO.getEmail().trim().isEmpty()) {
+            // Check if email already exists (excluding current user)
+            if (!updateDTO.getEmail().equals(user.getEmail()) && 
+                userRepository.findByEmail(updateDTO.getEmail()).isPresent()) {
+                throw new DuplicateResourceException("Email", updateDTO.getEmail());
+            }
+            user.setEmail(updateDTO.getEmail());
+            hasChanges = true;
+        }
+        
+        // Update password if provided
+        if (updateDTO.getNewPassword() != null && !updateDTO.getNewPassword().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(updateDTO.getNewPassword()));
+            hasChanges = true;
+        }
+        
+        if (!hasChanges) {
+            throw new ValidationException("At least one field must be provided for update");
+        }
+        
+        User updatedUser = userRepository.save(user);
+        return UserMapper.toResponseDTO(updatedUser);
     }
 
 }

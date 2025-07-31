@@ -60,7 +60,7 @@ public class RecipeController {
             @Positive @PathVariable Long id, 
             @Valid @RequestBody RecipeRequestDTO requestDTO) {
         // TODO: Get actual user ID from authentication context
-        Long userId = requestDTO.getUserId();
+        Long userId = requestDTO.getAuthorId();
         RecipeResponseDTO updatedRecipe = recipeService.updateRecipeWithValidation(id, requestDTO, userId);
         return ResponseEntity.ok(updatedRecipe);
     }

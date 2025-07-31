@@ -32,8 +32,8 @@ public class RecipeRequestDTO {
     @Min(value = 0, message = "Like count cannot be negative")
     private Integer likeCount;
     
-    @NotNull(message = "User ID is required")
-    private Long userId;
+    @NotNull(message = "Author ID is required")
+    private Long authorId;
     
     private Long originalRecipeId;
     
