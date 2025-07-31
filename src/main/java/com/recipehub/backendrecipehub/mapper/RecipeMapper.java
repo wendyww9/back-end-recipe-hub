@@ -5,7 +5,7 @@ import com.recipehub.backendrecipehub.model.*;
 import java.util.stream.Collectors;
 
 public class RecipeMapper {
-    public static Recipe toEntity(RecipeRequestDTO dto, User author, Recipe originalRecipe) {
+    public static Recipe toEntity(RecipeRequestDTO dto, User user, Recipe originalRecipe) {
         return Recipe.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
@@ -14,7 +14,7 @@ public class RecipeMapper {
                 .isPublic(dto.getIsPublic())
                 .cooked(dto.getCooked())
                 .favourite(dto.getFavourite())
-                .author(author)
+                .user(user)
                 .originalRecipe(originalRecipe)
                 .build();
     }
@@ -30,8 +30,8 @@ public class RecipeMapper {
         dto.setCooked(recipe.isCooked());
         dto.setFavourite(recipe.isFavourite());
         dto.setLikeCount(recipe.getLikeCount());
-        dto.setAuthorId(recipe.getAuthor().getId());
-        dto.setAuthorUsername(recipe.getAuthor().getUsername());
+        dto.setUserId(recipe.getUser().getId());
+        dto.setUserUsername(recipe.getUser().getUsername());
         dto.setOriginalRecipeId(recipe.getOriginalRecipe() != null ? recipe.getOriginalRecipe().getId() : null);
         dto.setCreatedAt(recipe.getCreatedAt());
         dto.setUpdatedAt(recipe.getUpdatedAt());

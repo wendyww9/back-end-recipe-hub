@@ -5,13 +5,22 @@ import com.recipehub.backendrecipehub.model.Recipe;
 import com.recipehub.backendrecipehub.service.UserService;
 import com.recipehub.backendrecipehub.service.RecipeService;
 import com.recipehub.backendrecipehub.dto.RecipeResponseDTO;
+import com.recipehub.backendrecipehub.dto.PasswordUpdateDTO;
+import com.recipehub.backendrecipehub.dto.EmailUpdateDTO;
 import com.recipehub.backendrecipehub.mapper.RecipeMapper;
+import com.recipehub.backendrecipehub.model.RecipeBook;
+import com.recipehub.backendrecipehub.service.RecipeBookService;
+import com.recipehub.backendrecipehub.dto.RecipeBookDTO;
+import com.recipehub.backendrecipehub.mapper.RecipeBookMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,11 +31,13 @@ import java.util.stream.Collectors;
 public class UserController {
     private final UserService userService;
     private final RecipeService recipeService;
+    private final RecipeBookService recipeBookService;
 
     @Autowired
-    public UserController(UserService userService, RecipeService recipeService) {
+    public UserController(UserService userService, RecipeService recipeService, RecipeBookService recipeBookService) {
         this.userService = userService;
         this.recipeService = recipeService;
+        this.recipeBookService = recipeBookService;
     }
 
     @GetMapping("/me")
@@ -44,7 +55,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUser(@PathVariable Long id) {
+    public ResponseEntity<User> getUser(@Positive @PathVariable Long id) {
         return userService.findById(id)
                 .map(user -> {
                     user.setPassword(null); // Don't return password
@@ -62,41 +73,50 @@ public class UserController {
 
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<?> deleteUser(@Positive @PathVariable Long id) {
         userService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
     
     @PutMapping("/{userId}/password")
-    public ResponseEntity<?> updatePassword(@PathVariable Long userId, @RequestBody Map<String, String> updatePasswordMap) {
-        User updatedUser = userService.updatePassword(userId, updatePasswordMap);
+    public ResponseEntity<?> updatePassword(
+            @Positive @PathVariable Long userId, 
+            @Valid @RequestBody PasswordUpdateDTO passwordUpdateDTO) {
+        User updatedUser = userService.updatePassword(userId, passwordUpdateDTO);
         updatedUser.setPassword(null); // Don't return password
         return ResponseEntity.ok(updatedUser);
     }
     
     @PutMapping("/{userId}/email")
-    public ResponseEntity<?> updateEmail(@PathVariable Long userId, @RequestBody Map<String, String> updateEmailMap) {
-        User updatedUser = userService.updateEmail(userId, updateEmailMap);
+    public ResponseEntity<?> updateEmail(
+            @Positive @PathVariable Long userId, 
+            @Valid @RequestBody EmailUpdateDTO emailUpdateDTO) {
+        User updatedUser = userService.updateEmail(userId, emailUpdateDTO);
         updatedUser.setPassword(null); // Don't return password
         return ResponseEntity.ok(updatedUser);
     }
     
     @GetMapping("/{userId}/recipes")
-    public ResponseEntity<List<RecipeResponseDTO>> getUserRecipes(@PathVariable Long userId) {
+    public ResponseEntity<List<RecipeResponseDTO>> getUserRecipes(@Positive @PathVariable Long userId) {
         List<RecipeResponseDTO> recipeDTOs = recipeService.getRecipesByUserId(userId);
         return ResponseEntity.ok(recipeDTOs);
     }
 
     @GetMapping("/{userId}/recipes/cooked")
-    public ResponseEntity<List<RecipeResponseDTO>> getCookedRecipes(@PathVariable Long userId) {
+    public ResponseEntity<List<RecipeResponseDTO>> getCookedRecipes(@Positive @PathVariable Long userId) {
         List<RecipeResponseDTO> recipeDTOs = recipeService.getUserCookedRecipes(userId);
         return ResponseEntity.ok(recipeDTOs);
     }
 
     @GetMapping("/{userId}/recipes/favourite")
-    public ResponseEntity<List<RecipeResponseDTO>> getFavouriteRecipes(@PathVariable Long userId) {
+    public ResponseEntity<List<RecipeResponseDTO>> getFavouriteRecipes(@Positive @PathVariable Long userId) {
         List<RecipeResponseDTO> recipeDTOs = recipeService.getUserFavouriteRecipes(userId);
         return ResponseEntity.ok(recipeDTOs);
     }
 
+    @GetMapping("/{userId}/recipe-books")
+    public ResponseEntity<List<RecipeBookDTO>> getUserRecipeBooks(@Positive @PathVariable Long userId) {
+        List<RecipeBookDTO> recipeBooks = recipeBookService.getUsersAllRecipeBook(userId);
+        return ResponseEntity.ok(recipeBooks);
+    }
 }

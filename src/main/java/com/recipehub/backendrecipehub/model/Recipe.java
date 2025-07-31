@@ -19,7 +19,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"author", "originalRecipe"})
+@ToString(exclude = {"user", "originalRecipe"})
 public class Recipe {
 
     @Id
@@ -27,9 +27,9 @@ public class Recipe {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
-    private User author;
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "original_recipe_id") // allow null
