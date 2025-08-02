@@ -22,10 +22,8 @@ public class RecipeBookController {
     }
 
     @PostMapping
-    public ResponseEntity<RecipeBookDTO> createRecipeBook(
-            @Valid @RequestBody RecipeBookDTO recipeBookDTO,
-            @NotNull @Positive @RequestParam Long userId) {
-        RecipeBookDTO createdRecipeBook = recipeBookService.createRecipeBook(recipeBookDTO, userId);
+    public ResponseEntity<RecipeBookDTO> createRecipeBook(@Valid @RequestBody RecipeBookDTO recipeBookDTO) {
+        RecipeBookDTO createdRecipeBook = recipeBookService.createRecipeBook(recipeBookDTO);
         return ResponseEntity.ok(createdRecipeBook);
     }
 

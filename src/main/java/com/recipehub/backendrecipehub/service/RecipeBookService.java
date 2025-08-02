@@ -33,11 +33,22 @@ public class RecipeBookService {
         this.userRepository = userRepository;
     }
 
-    public RecipeBookDTO createRecipeBook(RecipeBookDTO recipeBookDTO, Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+    public RecipeBookDTO createRecipeBook(RecipeBookDTO recipeBookDTO) {
+
+        User user = userRepository.findById(recipeBookDTO.getUserId())
+                .orElseThrow(() -> new UserNotFoundException(recipeBookDTO.getUserId()));
 
         RecipeBook book = RecipeBookMapper.toEntity(recipeBookDTO, user);
+        
+        // Handle recipe list if provided
+        if (recipeBookDTO.getRecipeIds() != null && !recipeBookDTO.getRecipeIds().isEmpty()) {
+            for (Long recipeId : recipeBookDTO.getRecipeIds()) {
+                Recipe recipe = recipeRepository.findById(recipeId)
+                        .orElseThrow(() -> new RecipeNotFoundException(recipeId));
+                book.getRecipes().add(recipe);
+            }
+        }
+        
         RecipeBook savedBook = recipeBookRepository.save(book);
 
         return RecipeBookMapper.toDTO(savedBook);
