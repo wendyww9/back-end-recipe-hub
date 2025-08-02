@@ -121,7 +121,7 @@ class RecipeBookControllerIntegrationTest {
         recipeBookRequest.setRecipeIds(new ArrayList<>());
 
         // Create the recipe book
-        RecipeBookDTO createdBook = recipeBookService.createRecipeBook(recipeBookRequest, testUser.getId());
+        RecipeBookDTO createdBook = recipeBookService.createRecipeBook(recipeBookRequest);
 
         // Delete the recipe book
         mockMvc.perform(delete("/api/recipebooks/" + createdBook.getId())
@@ -140,7 +140,7 @@ class RecipeBookControllerIntegrationTest {
         recipeBookRequest.setRecipeIds(new ArrayList<>());
 
         // Create the recipe book
-        recipeBookService.createRecipeBook(recipeBookRequest, testUser.getId());
+        recipeBookService.createRecipeBook(recipeBookRequest);
 
         // Test getting user's recipe books
         mockMvc.perform(get("/api/users/" + testUser.getId() + "/recipe-books"))

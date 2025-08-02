@@ -6,6 +6,146 @@ local test: http://localhost:8080/api
 Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com/api
 ```
 
+## Setup and Running
+
+### Prerequisites
+- Java 17 or higher
+- Maven (or use the included Maven wrapper)
+- PostgreSQL (for development mode)
+
+### Database Configuration
+
+#### Default Mode (H2 In-Memory Database)
+When no profile is specified, the application uses H2 in-memory database:
+```bash
+./mvnw spring-boot:run
+```
+- **Use Case**: Quick testing, CI/CD, demo purposes
+- **Data Persistence**: Data is lost when application stops
+- **Configuration**: No external database setup required
+
+#### Development Mode (PostgreSQL)
+For development with persistent data storage:
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+- **Use Case**: Development, testing with persistent data
+- **Data Persistence**: Data persists between application restarts
+- **Configuration**: Requires PostgreSQL running on localhost:5432
+
+### Database Setup for Development
+
+1. **Install PostgreSQL** (if not already installed)
+2. **Create Database**:
+   ```sql
+   CREATE DATABASE recipehub_development;
+   ```
+3. **Update Configuration** (if needed):
+   - Edit `src/main/resources/application-dev.properties`
+   - Update database credentials if different from defaults
+
+### Running the Application
+
+#### Quick Start (H2 Database)
+```bash
+# Clone the repository
+git clone <repository-url>
+cd back-end-recipe-hub
+
+# Run with default H2 database
+./mvnw spring-boot:run
+```
+
+#### Development Mode (PostgreSQL)
+```bash
+# Ensure PostgreSQL is running
+# Create database if needed
+createdb recipehub_development
+
+# Run with PostgreSQL
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+### Verification
+Once running, test the API:
+```bash
+# Test health endpoint
+curl http://localhost:8080/api/users
+
+# Should return empty array or existing users
+```
+
+### Configuration Files
+
+The application uses different configuration files based on the active profile:
+
+- **`application.properties`**: Default configuration (H2 database)
+- **`application-dev.properties`**: Development configuration (PostgreSQL)
+- **`application-prod.properties`**: Production configuration (PostgreSQL)
+
+#### Default Configuration (H2)
+```properties
+# Uses H2 in-memory database
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.jpa.hibernate.ddl-auto=create-drop
+```
+
+#### Development Configuration (PostgreSQL)
+```properties
+# Uses PostgreSQL with persistent storage
+spring.datasource.url=jdbc:postgresql://localhost:5432/recipehub_development
+spring.datasource.username=postgres
+spring.datasource.password=
+spring.jpa.hibernate.ddl-auto=update
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+**1. PostgreSQL Connection Error**
+```
+Error: Could not create connection to database server
+```
+**Solution**: Ensure PostgreSQL is running and accessible on localhost:5432
+
+**2. Database Not Found**
+```
+Error: database "recipehub_development" does not exist
+```
+**Solution**: Create the database:
+```sql
+CREATE DATABASE recipehub_development;
+```
+
+**3. Permission Denied**
+```
+Error: permission denied for database recipehub_development
+```
+**Solution**: Check PostgreSQL user permissions or update credentials in `application-dev.properties`
+
+**4. Port Already in Use**
+```
+Error: Web server failed to start. Port 8080 was already in use
+```
+**Solution**: Stop other applications using port 8080 or change the port in configuration
+
+#### Useful Commands
+
+```bash
+# Check if PostgreSQL is running
+pg_isready -h localhost -p 5432
+
+# List PostgreSQL databases
+psql -U postgres -l
+
+# Connect to PostgreSQL
+psql -U postgres -d recipehub_development
+
+# Check application logs
+tail -f logs/application.log
+```
+
 ## Authentication Endpoints (`/api/auth`)
 
 ### 1. Register User
@@ -925,17 +1065,14 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 ### 22. Create Recipe Book
 **POST** `/api/recipebooks`
 
-**Request Parameters:**
-- `userId` (query parameter): The ID of the user creating the recipe book (required, positive integer)
-
 **Request Body:**
 ```json
 {
   "name": "string (required, 1-255 characters)",
   "description": "string (optional, max 1000 characters)",
   "isPublic": true,
-  "userId": 1 (required),
-  "recipeIds": [1, 2, 3] (optional, array of recipe IDs)
+  "userId": 1,
+  "recipeIds": [1, 2, 3]
 }
 ```
 
