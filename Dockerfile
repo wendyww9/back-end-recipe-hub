@@ -20,8 +20,11 @@ WORKDIR /back-end-recipe-hub
 # Copy the JAR file from the build stage
 COPY --from=build /back-end-recipe-hub/target/*.jar app.jar
 
+# Set render profile as default for Render.com deployment
+ENV SPRING_PROFILES_ACTIVE=render
+
 # Expose the application's port (adjust if needed)
 EXPOSE 8080
 
-# Run the application
+# Run the application with production profile
 ENTRYPOINT ["java", "-jar", "app.jar"]
