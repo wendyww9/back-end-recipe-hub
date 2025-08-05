@@ -34,6 +34,8 @@ public class RecipeService {
 
     public RecipeResponseDTO createRecipe(RecipeRequestDTO dto, User user, Recipe originalRecipe) {
         Recipe entity = RecipeMapper.toEntity(dto, user, originalRecipe);
+        // Set initial updatedAt timestamp
+        entity.setUpdatedAt(LocalDateTime.now());
         Recipe savedRecipe = recipeRepository.save(entity);
         return RecipeMapper.toDTO(savedRecipe);
     }
@@ -83,7 +85,7 @@ public class RecipeService {
         
         RecipeMapper.updateEntity(dto, recipe);
         
-        // Update the updatedAt timestamp
+        // Update the updatedAt timestamp only when recipe is actually modified
         recipe.setUpdatedAt(LocalDateTime.now());
         
         Recipe savedRecipe = recipeRepository.save(recipe);
