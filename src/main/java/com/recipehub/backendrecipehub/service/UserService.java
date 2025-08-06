@@ -49,21 +49,15 @@ public class UserService {
         return UserMapper.toResponseDTO(savedUser);
     }
 
-    public User save(User user) {
-        // If this is a new user or password has changed, hash it
-        if (user.getId() == null || user.getPassword() != null) {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
-        return userRepository.save(user);
-    }
-
-    public boolean authenticateUser(String username, String password) {
-        Optional<User> userOpt = userRepository.findByUsername(username);
+    public Optional<UserResponseDTO> authenticateUserAndGetUser(String usernameOrEmail, String password) {
+        Optional<User> userOpt = findUserByUsernameOrEmail(usernameOrEmail);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            return passwordEncoder.matches(password, user.getPassword());
+            if (passwordEncoder.matches(password, user.getPassword())) {
+                return Optional.of(UserMapper.toResponseDTO(user));
+            }
         }
-        return false;
+        return Optional.empty();
     }
 
     private Optional<User> findUserByUsernameOrEmail(String usernameOrEmail) {
@@ -78,52 +72,8 @@ public class UserService {
         return userOpt;
     }
 
-    public boolean login(String usernameOrEmail, String password) {
-        Optional<User> userOpt = findUserByUsernameOrEmail(usernameOrEmail);
-        
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            return passwordEncoder.matches(password, user.getPassword());
-        }
-        return false;
-    }
 
-    public Optional<User> loginAndGetUser(String usernameOrEmail, String password) {
-        Optional<User> userOpt = findUserByUsernameOrEmail(usernameOrEmail);
-        
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            if (passwordEncoder.matches(password, user.getPassword())) {
-                return userOpt;
-            }
-        }
-        return Optional.empty();
-    }
 
-    public boolean loginWithUsername(String username, String password) {
-        return authenticateUser(username, password);
-    }
-
-    public boolean loginWithEmail(String email, String password) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            return passwordEncoder.matches(password, user.getPassword());
-        }
-        return false;
-    }
-
-    public boolean logout() {
-        // Since this is a stateless service, logout just needs to return success
-        // The actual session/token invalidation would typically be handled by
-        // the security configuration or controller layer
-        return true;
-    }
-
-    public Optional<User> findById(Long id) {
-        return userRepository.findById(id);
-    }
-    
     public Optional<UserResponseDTO> findByIdAsDTO(Long id) {
         return userRepository.findById(id)
                 .map(UserMapper::toResponseDTO);
@@ -131,14 +81,6 @@ public class UserService {
 
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
-    }
-
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
-    }
-
-    public List<User> findAll() {
-        return userRepository.findAll();
     }
     
     public List<UserResponseDTO> findAllAsDTO() {
@@ -152,42 +94,22 @@ public class UserService {
     }
 
 
-    public UserResponseDTO updatePassword(Long userId, UserUpdateDTO updateDTO) {
-        if (updateDTO.getNewPassword() == null || updateDTO.getNewPassword().trim().isEmpty()) {
-            throw new ValidationException("New password is required");
-        }
-        
-        UserUpdateDTO passwordUpdate = new UserUpdateDTO();
-        passwordUpdate.setNewPassword(updateDTO.getNewPassword());
-        passwordUpdate.setCurrentPassword(updateDTO.getCurrentPassword());
-        
-        return updateUser(userId, passwordUpdate);
-    }
 
-    public UserResponseDTO updateEmail(Long userId, UserUpdateDTO updateDTO) {
-        if (updateDTO.getEmail() == null || updateDTO.getEmail().trim().isEmpty()) {
-            throw new ValidationException("New email is required");
-        }
-        
-        UserUpdateDTO emailUpdate = new UserUpdateDTO();
-        emailUpdate.setEmail(updateDTO.getEmail());
-        emailUpdate.setCurrentPassword(updateDTO.getCurrentPassword());
-        
-        return updateUser(userId, emailUpdate);
-    }
 
     public UserResponseDTO updateUser(Long userId, UserUpdateDTO updateDTO) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
         
-        // Verify current password is provided
-        if (updateDTO.getCurrentPassword() == null || updateDTO.getCurrentPassword().trim().isEmpty()) {
-            throw new ValidationException("Current password is required for any user update");
-        }
-        
-        // Verify current password
-        if (!passwordEncoder.matches(updateDTO.getCurrentPassword(), user.getPassword())) {
-            throw new InvalidCredentialsException("Current password is incorrect");
+        // For password changes, require current password verification
+        if (updateDTO.getNewPassword() != null && !updateDTO.getNewPassword().trim().isEmpty()) {
+            if (updateDTO.getCurrentPassword() == null || updateDTO.getCurrentPassword().trim().isEmpty()) {
+                throw new ValidationException("Current password is required for password changes");
+            }
+            
+            // Verify current password
+            if (!passwordEncoder.matches(updateDTO.getCurrentPassword(), user.getPassword())) {
+                throw new InvalidCredentialsException("Current password is incorrect");
+            }
         }
         
         boolean hasChanges = false;
@@ -222,6 +144,13 @@ public class UserService {
         
         if (!hasChanges) {
             throw new ValidationException("At least one field must be provided for update");
+        }
+        
+        // For password changes, ensure new password meets requirements
+        if (updateDTO.getNewPassword() != null && !updateDTO.getNewPassword().trim().isEmpty()) {
+            if (updateDTO.getNewPassword().length() < 6) {
+                throw new ValidationException("New password must be at least 6 characters long");
+            }
         }
         
         User updatedUser = userRepository.save(user);

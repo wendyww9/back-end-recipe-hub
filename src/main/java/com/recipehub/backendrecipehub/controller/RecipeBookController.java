@@ -22,10 +22,8 @@ public class RecipeBookController {
     }
 
     @PostMapping
-    public ResponseEntity<RecipeBookDTO> createRecipeBook(
-            @Valid @RequestBody RecipeBookDTO recipeBookDTO,
-            @NotNull @Positive @RequestParam Long userId) {
-        RecipeBookDTO createdRecipeBook = recipeBookService.createRecipeBook(recipeBookDTO, userId);
+    public ResponseEntity<RecipeBookDTO> createRecipeBook(@Valid @RequestBody RecipeBookDTO recipeBookDTO) {
+        RecipeBookDTO createdRecipeBook = recipeBookService.createRecipeBook(recipeBookDTO);
         return ResponseEntity.ok(createdRecipeBook);
     }
 
@@ -50,17 +48,14 @@ public class RecipeBookController {
     @PutMapping("/{id}")
     public ResponseEntity<RecipeBookDTO> updateRecipeBook(
             @Positive @PathVariable Long id, 
-            @Valid @RequestBody RecipeBookDTO recipeBookDTO, 
-            @RequestParam(required = false) Long userId) {
-        RecipeBookDTO updatedRecipeBook = recipeBookService.updateRecipeBook(id, recipeBookDTO, userId);
+            @Valid @RequestBody RecipeBookDTO recipeBookDTO) {
+        RecipeBookDTO updatedRecipeBook = recipeBookService.updateRecipeBook(id, recipeBookDTO);
         return ResponseEntity.ok(updatedRecipeBook);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRecipeBook(
-            @Positive @PathVariable Long id, 
-            @NotNull @Positive @RequestParam Long userId) {
-        recipeBookService.deleteRecipeBook(id, userId);
+    public ResponseEntity<Void> deleteRecipeBook(@Positive @PathVariable Long id) {
+        recipeBookService.deleteRecipeBook(id);
         return ResponseEntity.noContent().build();
     }   
 }
