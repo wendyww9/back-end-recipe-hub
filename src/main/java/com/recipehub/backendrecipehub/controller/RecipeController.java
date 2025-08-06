@@ -67,8 +67,29 @@ public class RecipeController {
     }
 
     @GetMapping("/search")
-    public List<RecipeResponseDTO> searchByTitle(@NotNull @RequestParam String title) {
-        return recipeService.searchByTitle(title);
+    public ResponseEntity<List<RecipeResponseDTO>> searchRecipes(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) List<String> tags,
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) Boolean isPublic,
+            @RequestParam(required = false) Boolean cooked,
+            @RequestParam(required = false) Boolean favourite,
+            @RequestParam(required = false) String difficulty,
+            @RequestParam(required = false) String cuisine,
+            @RequestParam(required = false) String mealType,
+            @RequestParam(required = false) String dietary,
+            @RequestParam(required = false) String cookingMethod,
+            @RequestParam(required = false) String occasion,
+            @RequestParam(required = false) String season,
+            @RequestParam(required = false) String health,
+            @RequestParam(required = false) String ingredient,
+            @RequestParam(required = false) String specialFeature) {
+        
+        List<RecipeResponseDTO> recipes = recipeService.searchRecipes(
+                title, tags, author, isPublic, cooked, favourite, difficulty,
+                cuisine, mealType, dietary, cookingMethod, occasion, season,
+                health, ingredient, specialFeature);
+        return ResponseEntity.ok(recipes);
     }
 
     @GetMapping("/{id}")
