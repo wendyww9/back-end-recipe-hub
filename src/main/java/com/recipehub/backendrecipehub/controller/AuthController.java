@@ -1,6 +1,7 @@
 package com.recipehub.backendrecipehub.controller;
 
 
+import com.recipehub.backendrecipehub.dto.LoginResponseDTO;
 import com.recipehub.backendrecipehub.dto.UserRequestDTO;
 import com.recipehub.backendrecipehub.dto.UserResponseDTO;
 import com.recipehub.backendrecipehub.service.UserService;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -31,12 +33,14 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody UserRequestDTO userRequestDTO) {
+    public ResponseEntity<?> login(@RequestBody UserRequestDTO userRequestDTO) {
         // Try username first, then email if username is null
         String usernameOrEmail = userRequestDTO.getUsername() != null ? userRequestDTO.getUsername() : userRequestDTO.getEmail();
-        boolean success = userService.login(usernameOrEmail, userRequestDTO.getPassword());
-        if (success) {
-            return ResponseEntity.ok("Login successful");
+        Optional<UserResponseDTO> userOpt = userService.authenticateUserAndGetUser(usernameOrEmail, userRequestDTO.getPassword());
+        
+        if (userOpt.isPresent()) {
+            LoginResponseDTO response = new LoginResponseDTO("Login successful", userOpt.get());
+            return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
         }

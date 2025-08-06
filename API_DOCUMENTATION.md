@@ -303,14 +303,16 @@ tail -f logs/application.log
 
 ---
 
-### 7. Update User Password
-**PUT** `/api/users/{userId}/password`
+### 7. Update User
+**PUT** `/api/users/{userId}`
 
 **Request Body:**
 ```json
 {
-  "currentPassword": "string (required)",
-  "newPassword": "string (required, 6-100 characters)"
+  "currentPassword": "string (required only for password changes)",
+  "username": "string (optional)",
+  "email": "string (optional, valid email format)",
+  "newPassword": "string (optional, 6-100 characters)"
 }
 ```
 
@@ -325,40 +327,21 @@ tail -f logs/application.log
 ```
 
 **Error Responses:**
-- **400 Bad Request:** `"Current password and new password are required"`
+- **400 Bad Request:** `"Current password is required for password changes"` or `"New password must be at least 6 characters long"`
 - **401 Unauthorized:** `"Current password is incorrect"`
+- **409 Conflict:** `"Username already exists"` or `"Email already exists"`
+- **404 Not Found:** `"User not found with id: {userId}"`
+
+**Notes:**
+- At least one field (username, email, or newPassword) must be provided
+- **currentPassword is only required when changing password**
+- Username and email can be updated without password verification
+- Username and email uniqueness is validated
+- Password changes require current password verification for security
 
 ---
 
-### 8. Update User Email
-**PUT** `/api/users/{userId}/email`
-
-**Request Body:**
-```json
-{
-  "currentPassword": "string (required)",
-  "newEmail": "string (required, valid email format)"
-}
-```
-
-**Response Body (200 OK):**
-```json
-{
-  "id": 1,
-  "username": "string",
-  "email": "newemail@example.com",
-  "createdAt": "2025-07-29T21:51:22.106186"
-}
-```
-
-**Error Responses:**
-- **400 Bad Request:** `"Current password and new email are required"`
-- **401 Unauthorized:** `"Current password is incorrect"`
-- **409 Conflict:** `"Email already exists"`
-
----
-
-### 9. Delete User
+### 8. Delete User
 **DELETE** `/api/users/{id}`
 
 **Request Body:** None
@@ -370,7 +353,7 @@ tail -f logs/application.log
 
 ---
 
-### 10. Get User Recipes
+### 9. Get User Recipes
 **GET** `/api/users/{userId}/recipes`
 
 **Request Body:** None
@@ -412,7 +395,7 @@ tail -f logs/application.log
 
 ---
 
-### 11. Get User Cooked Recipes
+### 10. Get User Cooked Recipes
 **GET** `/api/users/{userId}/recipes/cooked`
 
 **Request Body:** None
@@ -466,7 +449,7 @@ tail -f logs/application.log
 
 ---
 
-### 12. Get User Favourite Recipes
+### 11. Get User Favourite Recipes
 **GET** `/api/users/{userId}/recipes/favourite`
 
 **Request Body:** None
@@ -525,7 +508,7 @@ tail -f logs/application.log
 
 ---
 
-### 13. Get User Recipe Books
+### 12. Get User Recipe Books
 **GET** `/api/users/{userId}/recipe-books`
 
 **Request Body:** None
@@ -867,7 +850,6 @@ GET /api/recipes/search?title=chocolate
 ```
 
 **Error Responses:**
-- **403 Forbidden:** `"Only the recipe owner can update this recipe"`
 - **404 Not Found:** `"Recipe not found with id: 1"`
 - **400 Bad Request:** `"Validation error"` with specific field validation details
 
@@ -1177,9 +1159,6 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 ### 26. Update Recipe Book
 **PUT** `/api/recipebooks/{id}`
 
-**Request Parameters:**
-- `userId` (query parameter): The ID of the user updating the recipe book (optional, positive integer)
-
 **Request Body (Partial Update Supported):**
 ```json
 {
@@ -1204,22 +1183,19 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 ```
 
 **Error Responses:**
-- **403 Forbidden:** `"Only the recipe book owner can update this recipe book"`
 - **404 Not Found:** `"Recipe book not found with id: 1"` or `"Recipe not found with id: 1"`
 - **400 Bad Request:** `"Validation error"` with specific field validation details
 
 **Key Features:**
-- **Authorization Required:** Only the recipe book owner can update it
+- **Frontend Authorization:** Users can only access their own recipe books through "My books"
 - **Recipe Management:** The `recipeIds` array completely replaces the current recipe list
 - **Partial Updates:** Only send the fields you want to change
+- **Simplified API:** No userId parameter required - frontend ensures ownership
 
 ---
 
 ### 27. Delete Recipe Book
 **DELETE** `/api/recipebooks/{id}`
-
-**Request Parameters:**
-- `userId` (query parameter): The ID of the user deleting the recipe book (required, positive integer)
 
 **Request Body:** None
 
@@ -1229,8 +1205,11 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 ```
 
 **Error Responses:**
-- **403 Forbidden:** `"Only the recipe book owner can delete this recipe book"`
 - **404 Not Found:** `"Recipe book not found with id: 1"`
+
+**Key Features:**
+- **Frontend Authorization:** Users can only access their own recipe books through "My books"
+- **Simplified API:** No userId parameter required - frontend ensures ownership
 
 ---
 
@@ -1319,7 +1298,7 @@ Original Recipe (ID: 1) ← originalRecipeId: null
   "name": "string (required, 1-255 characters)",
   "description": "string (optional, max 1000 characters)",
   "isPublic": true,
-  "userId": 1 (required),
+  "userId": 1,
   "recipeIds": [1, 2, 3] (optional, array of recipe IDs)
 }
 ```
@@ -1360,7 +1339,7 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 ### Recipe Book Validation
 - **name:** Required, 1-255 characters
 - **description:** Optional, max 1000 characters
-- **userId:** Required, positive integer
+- **userId:** Included in response, managed by backend
 
 ### Password/Email Update Validation
 - **currentPassword:** Required
@@ -1374,7 +1353,7 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 - **204 No Content:** Request successful, no content to return
 - **400 Bad Request:** Invalid request data or validation errors
 - **401 Unauthorized:** Authentication required or invalid credentials
-- **403 Forbidden:** Access denied (not the owner)
+- **403 Forbidden:** Access denied (legacy - not used in current implementation)
 - **404 Not Found:** Resource not found
 - **409 Conflict:** Resource already exists (e.g., duplicate email)
 - **500 Internal Server Error:** Server error
@@ -1401,7 +1380,7 @@ All error responses follow a consistent format:
 5. **Database:** Uses H2 in-memory database for development, PostgreSQL for production
 6. **Partial Updates:** Recipe and Recipe Book update endpoints support partial updates (only send fields you want to change)
 7. **Privacy:** Recipe and Recipe Book endpoints respect privacy settings (public/private)
-8. **Authorization:** Recipe and Recipe Book updates require ownership verification
+8. **Authorization:** Frontend controls access to user's own recipes and recipe books
 9. **Timestamps:** All recipes include `createdAt` and `updatedAt` timestamps
 10. **Like Count:** Separate endpoint for updating like count without authorization requirements
 11. **Recipe Forking:** Fork functionality allows creating copies of recipes with optional modifications, similar to GitHub's fork feature

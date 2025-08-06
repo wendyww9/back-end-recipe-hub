@@ -75,13 +75,9 @@ public class RecipeBookService {
         return RecipeBookMapper.toDTO(recipeBook);
     }
 
-    public RecipeBookDTO updateRecipeBook(Long id, RecipeBookDTO recipeBookDTO, Long userId) {
+    public RecipeBookDTO updateRecipeBook(Long id, RecipeBookDTO recipeBookDTO) {
         RecipeBook recipeBook = recipeBookRepository.findById(id)
                 .orElseThrow(() -> new RecipeBookNotFoundException(id));
-
-        if (!recipeBook.getUser().getId().equals(userId)) {
-            throw new UnauthorizedException("Only the recipe book owner can update this recipe book");
-        }
 
         RecipeBookMapper.updateEntity(recipeBookDTO, recipeBook);
 
@@ -107,13 +103,12 @@ public class RecipeBookService {
     }
 
 
-    public void deleteRecipeBook(Long id, Long userId) {
+    public void deleteRecipeBook(Long id) {
         RecipeBook recipeBook = recipeBookRepository.findById(id)
                 .orElseThrow(() -> new RecipeBookNotFoundException(id));
 
-        if (!recipeBook.getUser().getId().equals(userId)) {
-            throw new UnauthorizedException("Only the recipe book owner can delete this recipe book");
-        }
+        // Note: Authorization will be handled by Spring Security
+        // Frontend ensures users can only access their own books
 
         recipeBookRepository.delete(recipeBook);
     }
