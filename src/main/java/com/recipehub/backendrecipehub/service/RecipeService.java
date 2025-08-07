@@ -13,23 +13,31 @@ import com.recipehub.backendrecipehub.model.Recipe;
 import com.recipehub.backendrecipehub.model.User;
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
 import com.recipehub.backendrecipehub.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.recipehub.backendrecipehub.service.S3Service;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@ConditionalOnBean(S3Service.class)
 public class RecipeService {
 
     private final RecipeRepository recipeRepository;
     private final UserRepository userRepository;
-    public  RecipeService(RecipeRepository recipeRepository, UserRepository userRepository) {
+    private final S3Service s3Service;
+
+    public RecipeService(RecipeRepository recipeRepository, UserRepository userRepository, S3Service s3Service) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
+        this.s3Service = s3Service;
     }
 
     public RecipeResponseDTO createRecipe(RecipeRequestDTO dto, User user, Recipe originalRecipe) {
@@ -204,6 +212,129 @@ public class RecipeService {
                 .map(RecipeMapper::toDTO)
                 .collect(Collectors.toList());
     }
-    
-    // Add more methods if needed
+
+    // Image handling methods
+    public RecipeResponseDTO createRecipeFromRequest(
+            MultipartFile file,
+            String title,
+            String description,
+            String ingredientsJson,
+            String instructionsJson,
+            Long authorId,
+            Boolean isPublic,
+            Boolean cooked,
+            Boolean favourite
+    ) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+
+        List<IngredientDTO> ingredientList = mapper.readValue(
+                ingredientsJson,
+                mapper.getTypeFactory().constructCollectionType(List.class, IngredientDTO.class)
+        );
+
+        List<String> instructionList = mapper.readValue(
+                instructionsJson,
+                mapper.getTypeFactory().constructCollectionType(List.class, String.class)
+        );
+
+        // Create DTO
+        RecipeRequestDTO requestDTO = new RecipeRequestDTO();
+        requestDTO.setTitle(title);
+        requestDTO.setDescription(description);
+        requestDTO.setIngredients(ingredientList);
+        requestDTO.setInstructions(instructionList);
+        requestDTO.setAuthorId(authorId);
+        requestDTO.setIsPublic(isPublic != null ? isPublic : false);
+        requestDTO.setCooked(cooked != null ? cooked : false);
+        requestDTO.setFavourite(favourite != null ? favourite : false);
+
+        if (file != null && !file.isEmpty()) {
+            validateImageFile(file);
+            String fileName = s3Service.uploadImage(file);
+            String imageUrl = s3Service.getImageUrl(fileName);
+            requestDTO.setImageUrl(imageUrl);
+        }
+
+        return createRecipeWithValidation(requestDTO);
+    }
+
+
+
+    public RecipeResponseDTO uploadRecipeImage(Long recipeId, MultipartFile file, Long userId) throws IOException {
+        validateImageFile(file);
+        
+        String fileName = s3Service.uploadImage(file);
+        String imageUrl = s3Service.getImageUrl(fileName);
+
+        // Update recipe with new image URL
+        RecipeRequestDTO updateRequest = new RecipeRequestDTO();
+        updateRequest.setImageUrl(imageUrl);
+
+        return updateRecipeWithValidation(recipeId, updateRequest, userId);
+    }
+
+    public RecipeResponseDTO deleteRecipeImage(Long recipeId, Long userId) {
+        // Get the current recipe to check if it has an image
+        RecipeResponseDTO currentRecipe = getRecipeById(recipeId)
+                .orElseThrow(() -> new RecipeNotFoundException(recipeId));
+
+        String currentImageUrl = currentRecipe.getImageUrl();
+        if (currentImageUrl == null || currentImageUrl.isEmpty()) {
+            throw new ValidationException("Recipe does not have an image to delete");
+        }
+
+        // Extract fileName from the image URL
+        String fileName = extractFileNameFromUrl(currentImageUrl);
+        if (fileName == null) {
+            throw new ValidationException("Invalid image URL format");
+        }
+
+        // Delete image from S3
+        s3Service.deleteImage(fileName);
+
+        // Update recipe to remove image URL
+        RecipeRequestDTO updateRequest = new RecipeRequestDTO();
+        updateRequest.setImageUrl(""); // Set to empty string to remove image
+
+        return updateRecipeWithValidation(recipeId, updateRequest, userId);
+    }
+
+    private void validateImageFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ValidationException("File is empty");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new ValidationException("File must be an image");
+        }
+
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new ValidationException("File size must be less than 5MB");
+        }
+    }
+
+
+
+    private String extractFileNameFromUrl(String imageUrl) {
+        try {
+            // Handle both S3 URLs and regular HTTP URLs
+            if (imageUrl.contains("s3.amazonaws.com")) {
+                // Extract from S3 URL: https://s3.amazonaws.com/bucket/recipe-images/uuid.jpg
+                String[] parts = imageUrl.split("/");
+                if (parts.length >= 4) {
+                    return parts[parts.length - 2] + "/" + parts[parts.length - 1];
+                }
+            } else if (imageUrl.contains("/")) {
+                // Extract from regular URL: https://example.com/images/uuid.jpg
+                String[] parts = imageUrl.split("/");
+                if (parts.length >= 2) {
+                    return parts[parts.length - 2] + "/" + parts[parts.length - 1];
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

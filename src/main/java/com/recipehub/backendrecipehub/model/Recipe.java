@@ -49,6 +49,9 @@ public class Recipe {
     @Column(columnDefinition = "TEXT")
     private List<String> instructions;
 
+    @Column(columnDefinition = "TEXT")
+    private String imageUrl;
+
     private boolean isPublic;
     private boolean cooked;
     private boolean favourite;

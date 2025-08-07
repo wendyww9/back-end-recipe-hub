@@ -10,10 +10,17 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.S3Client;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/recipes")
@@ -27,10 +34,26 @@ public class RecipeController {
         this.recipeService = recipeService;
     }
 
-    @PostMapping
-    public ResponseEntity<RecipeResponseDTO> createRecipe(@Valid @RequestBody RecipeRequestDTO requestDTO) {
-        RecipeResponseDTO saved = recipeService.createRecipeWithValidation(requestDTO);
-        return ResponseEntity.ok(saved);
+        @PostMapping
+    public ResponseEntity<RecipeResponseDTO> createRecipe(
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("ingredients") String ingredients,
+            @RequestParam("instructions") String instructions,
+            @RequestParam("authorId") Long authorId,
+            @RequestParam(value = "isPublic", required = false) Boolean isPublic,
+            @RequestParam(value = "cooked", required = false) Boolean cooked,
+            @RequestParam(value = "favourite", required = false) Boolean favourite) {
+        
+        try {
+            RecipeResponseDTO saved = recipeService.createRecipeFromRequest(
+                file, title, description, ingredients, instructions, 
+                authorId, isPublic, cooked, favourite);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create recipe: " + e.getMessage());
+        }
     }
 
     @GetMapping
@@ -81,5 +104,53 @@ public class RecipeController {
         Long userId = 1L;
         RecipeResponseDTO forkedRecipe = recipeService.forkRecipe(id, modifications, userId);
         return ResponseEntity.ok(forkedRecipe);
+    }
+
+
+
+    @PostMapping("/{id}/image")
+    @ConditionalOnBean(S3Client.class)
+    public ResponseEntity<Map<String, Object>> uploadRecipeImage(
+            @Positive @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        
+        try {
+            // TODO: Get actual user ID from authentication context
+            Long userId = 1L; // Placeholder
+            RecipeResponseDTO updatedRecipe = recipeService.uploadRecipeImage(id, file, userId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("recipe", updatedRecipe);
+            response.put("message", "Recipe image updated successfully");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to update recipe: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    @DeleteMapping("/{id}/image")
+    @ConditionalOnBean(S3Client.class)
+    public ResponseEntity<Map<String, Object>> deleteRecipeImage(@Positive @PathVariable Long id) {
+        
+        try {
+            // TODO: Get actual user ID from authentication context
+            Long userId = 1L; // Placeholder
+            RecipeResponseDTO updatedRecipe = recipeService.deleteRecipeImage(id, userId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("recipe", updatedRecipe);
+            response.put("message", "Recipe image deleted successfully");
+            return ResponseEntity.ok(response);
+        } catch (RecipeNotFoundException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to delete recipe image: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
     }
 }

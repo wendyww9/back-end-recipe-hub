@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
 
 @Data
@@ -24,6 +25,10 @@ public class RecipeRequestDTO {
     @NotNull(message = "Instructions list is required")
     @Size(min = 1, message = "At least one instruction is required")
     private List<String> instructions;
+    
+    @Size(max = 1000, message = "Image URL must not exceed 1000 characters")
+    @Pattern(regexp = "^(https?://.*|s3://.*|$)", message = "Image URL must be a valid HTTP/HTTPS URL or S3 path")
+    private String imageUrl;
     
     private Boolean isPublic;
     private Boolean cooked;

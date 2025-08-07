@@ -11,6 +11,7 @@ public class RecipeMapper {
                 .description(dto.getDescription())
                 .ingredients(dto.getIngredients().stream().map(RecipeMapper::mapIngredient).collect(Collectors.toList()))
                 .instructions(dto.getInstructions())
+                .imageUrl(dto.getImageUrl())
                 .isPublic(dto.getIsPublic())
                 .cooked(dto.getCooked())
                 .favourite(dto.getFavourite())
@@ -26,6 +27,7 @@ public class RecipeMapper {
         dto.setDescription(recipe.getDescription());
         dto.setIngredients(recipe.getIngredients().stream().map(RecipeMapper::mapIngredientDto).collect(Collectors.toList()));
         dto.setInstructions(recipe.getInstructions());
+        dto.setImageUrl(recipe.getImageUrl());
         dto.setIsPublic(recipe.isPublic());
         dto.setCooked(recipe.isCooked());
         dto.setFavourite(recipe.isFavourite());
@@ -67,6 +69,14 @@ public class RecipeMapper {
         }
         if (dto.getInstructions() != null) {
             recipe.setInstructions(dto.getInstructions());
+        }
+        if (dto.getImageUrl() != null) {
+            // Handle empty string as null (to remove image)
+            if (dto.getImageUrl().trim().isEmpty()) {
+                recipe.setImageUrl(null);
+            } else {
+                recipe.setImageUrl(dto.getImageUrl());
+            }
         }
         if (dto.getIsPublic() != null) {
             recipe.setPublic(dto.getIsPublic());

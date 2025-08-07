@@ -11,6 +11,7 @@ public class RecipeResponseDTO {
     private String description;
     private List<IngredientDTO> ingredients;
     private List<String> instructions;
+    private String imageUrl;
     private boolean isPublic;
     private boolean cooked;
     private boolean favourite;

@@ -546,28 +546,46 @@ tail -f logs/application.log
 
 ## Recipe Management Endpoints (`/api/recipes`)
 
-### 14. Create Recipe
+### 14. Create Recipe (Unified - with or without image)
 **POST** `/api/recipes`
 
-**Request Body:**
-```json
-{
-  "title": "string (required, 1-255 characters)",
-  "description": "string (optional, max 1000 characters)",
-  "ingredients": [
-    {
-      "name": "string (required, 1-100 characters)",
-      "unit": "string (required, 1-50 characters)",
-      "quantity": 1.0 (required, minimum 0.1)
-    }
-  ] (required, at least 1 ingredient),
-  "instructions": ["string"] (required, at least 1 instruction),
-  "isPublic": true,
-  "cooked": false,
-  "favourite": false,
-  "authorId": 1 (required),
-  "originalRecipeId": null
-}
+**Content-Type:** `multipart/form-data`
+
+**Parameters:**
+- `file` (optional): Image file to upload
+- `title` (required): Recipe title (1-255 characters)
+- `description` (optional): Recipe description (max 1000 characters)
+- `ingredients` (required): JSON array of ingredients
+- `instructions` (required): JSON array of instructions
+- `authorId` (required): User ID of the author
+- `isPublic` (optional): Whether recipe is public (default: false)
+- `cooked` (optional): Whether user has cooked this (default: false)
+- `favourite` (optional): Whether user has favorited this (default: false)
+
+
+**Example without image:**
+```bash
+curl -X POST http://localhost:8080/api/recipes \
+  -F "title=Chocolate Cake" \
+  -F "description=A delicious chocolate cake recipe" \
+  -F "ingredients=[{\"name\":\"Flour\",\"unit\":\"cups\",\"quantity\":2.0},{\"name\":\"Sugar\",\"unit\":\"cups\",\"quantity\":1.5}]" \
+  -F "instructions=[\"Mix dry ingredients\",\"Mix wet ingredients\",\"Bake at 350F\"]" \
+  -F "authorId=1" \
+  -F "isPublic=true" \
+
+```
+
+**Example with image:**
+```bash
+curl -X POST http://localhost:8080/api/recipes \
+  -F "file=@image.jpg" \
+  -F "title=Spaghetti Carbonara" \
+  -F "description=A classic Italian pasta dish" \
+  -F "ingredients=[{\"name\":\"Pasta\",\"unit\":\"pounds\",\"quantity\":1.0},{\"name\":\"Eggs\",\"unit\":\"pieces\",\"quantity\":4.0}]" \
+  -F "instructions=[\"Boil pasta\",\"Cook bacon\",\"Mix with eggs\"]" \
+  -F "authorId=1" \
+  -F "isPublic=true" \
+
 ```
 
 **Response Body (200 OK):**
@@ -1042,6 +1060,318 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 
 ---
 
+### 21.5. Create Recipe with Image Upload
+**POST** `/api/recipes/with-image`
+
+**Description:** Create a new recipe with image upload to S3 bucket
+
+**Content-Type:** `multipart/form-data`
+
+**Request Parameters:**
+- `file` (optional): Image file (max 5MB, image types only)
+- `title` (required): Recipe title (1-255 characters)
+- `description` (optional): Recipe description (max 1000 characters)
+- `ingredients` (required): Ingredients as JSON string
+- `instructions` (required): Instructions as newline-separated string
+- `authorId` (required): Author user ID
+- `isPublic` (optional, default: true): Recipe visibility
+- `cooked` (optional, default: false): Cooked status
+- `favourite` (optional, default: false): Favourite status
+
+**Example Request (with image):**
+```
+POST /api/recipes/with-image
+Content-Type: multipart/form-data
+
+file: [image file]
+title: "Chocolate Cake"
+description: "A delicious chocolate cake recipe"
+ingredients: '[{"name":"Flour","unit":"cups","quantity":2.0},{"name":"Sugar","unit":"cups","quantity":1.5}]'
+instructions: "Mix ingredients\nBake at 350F\nLet cool"
+authorId: 1
+isPublic: true
+cooked: false
+favourite: false
+```
+
+**Example Request (without image):**
+```
+POST /api/recipes/with-image
+Content-Type: multipart/form-data
+
+title: "Chocolate Cake"
+description: "A delicious chocolate cake recipe"
+ingredients: '[{"name":"Flour","unit":"cups","quantity":2.0},{"name":"Sugar","unit":"cups","quantity":1.5}]'
+instructions: "Mix ingredients\nBake at 350F\nLet cool"
+authorId: 1
+isPublic: true
+cooked: false
+favourite: false
+```
+
+**Response Body (200 OK) - With Image:**
+```json
+{
+  "recipe": {
+    "id": 1,
+    "title": "Chocolate Cake",
+    "description": "A delicious chocolate cake recipe",
+    "ingredients": [
+      {
+        "name": "Flour",
+        "unit": "cups",
+        "quantity": 2.0
+      },
+      {
+        "name": "Sugar",
+        "unit": "cups",
+        "quantity": 1.5
+      }
+    ],
+    "instructions": ["Mix ingredients", "Bake at 350F", "Let cool"],
+    "imageUrl": "https://s3.amazonaws.com/bucket/recipe-images/uuid.jpg",
+    "isPublic": true,
+    "cooked": false,
+    "favourite": false,
+    "likeCount": 0,
+    "authorId": 1,
+    "authorUsername": "chef123",
+    "originalRecipeId": null,
+    "createdAt": "2025-07-29T21:51:22.106186",
+    "updatedAt": "2025-07-29T21:51:22.108822"
+  },
+  "imageUrl": "https://s3.amazonaws.com/bucket/recipe-images/uuid.jpg",
+  "fileName": "recipe-images/uuid.jpg",
+  "message": "Recipe created with image successfully"
+}
+```
+
+**Response Body (200 OK) - Without Image:**
+```json
+{
+  "recipe": {
+    "id": 1,
+    "title": "Chocolate Cake",
+    "description": "A delicious chocolate cake recipe",
+    "ingredients": [
+      {
+        "name": "Flour",
+        "unit": "cups",
+        "quantity": 2.0
+      },
+      {
+        "name": "Sugar",
+        "unit": "cups",
+        "quantity": 1.5
+      }
+    ],
+    "instructions": ["Mix ingredients", "Bake at 350F", "Let cool"],
+    "imageUrl": null,
+    "isPublic": true,
+    "cooked": false,
+    "favourite": false,
+    "likeCount": 0,
+    "authorId": 1,
+    "authorUsername": "chef123",
+    "originalRecipeId": null,
+    "createdAt": "2025-07-29T21:51:22.106186",
+    "updatedAt": "2025-07-29T21:51:22.108822"
+  },
+  "message": "Recipe created successfully (no image uploaded)"
+}
+```
+
+**Error Responses:**
+- **400 Bad Request:** `{"error": "File is empty"}` or `{"error": "File must be an image"}` or `{"error": "File size must be less than 5MB"}`
+- **500 Internal Server Error:** `{"error": "Failed to upload image: [error details]"}` or `{"error": "Failed to create recipe: [error details]"}`
+
+---
+
+### 21.6. Upload Recipe Image
+**POST** `/api/recipes/{id}/image`
+
+**Description:** Upload an image for an existing recipe
+
+**Content-Type:** `multipart/form-data`
+
+**Request Parameters:**
+- `file` (required): Image file (max 5MB, image types only)
+
+**Example Request:**
+```
+POST /api/recipes/1/image
+Content-Type: multipart/form-data
+
+file: [image file]
+```
+
+**Response Body (200 OK):**
+```json
+{
+  "recipe": {
+    "id": 1,
+    "title": "Chocolate Cake",
+    "description": "A delicious chocolate cake recipe",
+    "ingredients": [
+      {
+        "name": "Flour",
+        "unit": "cups",
+        "quantity": 2.0
+      }
+    ],
+    "instructions": ["Mix ingredients", "Bake at 350F"],
+    "imageUrl": "https://s3.amazonaws.com/bucket/recipe-images/new-uuid.jpg",
+    "isPublic": true,
+    "cooked": false,
+    "favourite": false,
+    "likeCount": 0,
+    "authorId": 1,
+    "authorUsername": "chef123",
+    "originalRecipeId": null,
+    "createdAt": "2025-07-29T21:51:22.106186",
+    "updatedAt": "2025-07-29T21:51:22.108822"
+  },
+  "imageUrl": "https://s3.amazonaws.com/bucket/recipe-images/new-uuid.jpg",
+  "fileName": "recipe-images/new-uuid.jpg",
+  "message": "Recipe image updated successfully"
+}
+```
+
+**Error Responses:**
+- **400 Bad Request:** `{"error": "File is empty"}` or `{"error": "File must be an image"}` or `{"error": "File size must be less than 5MB"}`
+- **404 Not Found:** `{"error": "Recipe not found with id: 1"}`
+- **500 Internal Server Error:** `{"error": "Failed to upload image: [error details]"}` or `{"error": "Failed to update recipe: [error details]"}`
+
+---
+
+### 21.7. Delete Recipe Image
+**DELETE** `/api/recipes/{id}/image`
+
+**Description:** Delete the image from an existing recipe
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+{
+  "recipe": {
+    "id": 1,
+    "title": "Chocolate Cake",
+    "description": "A delicious chocolate cake recipe",
+    "ingredients": [
+      {
+        "name": "Flour",
+        "unit": "cups",
+        "quantity": 2.0
+      }
+    ],
+    "instructions": ["Mix ingredients", "Bake at 350F"],
+    "imageUrl": null,
+    "isPublic": true,
+    "cooked": false,
+    "favourite": false,
+    "likeCount": 0,
+    "authorId": 1,
+    "authorUsername": "chef123",
+    "originalRecipeId": null,
+    "createdAt": "2025-07-29T21:51:22.106186",
+    "updatedAt": "2025-07-29T21:51:22.108822"
+  },
+  "deletedFileName": "recipe-images/uuid.jpg",
+  "message": "Recipe image deleted successfully"
+}
+```
+
+**Error Responses:**
+- **400 Bad Request:** `{"error": "Recipe does not have an image to delete"}` or `{"error": "Invalid image URL format"}`
+- **404 Not Found:** `{"error": "Recipe not found with id: 1"}`
+- **500 Internal Server Error:** `{"error": "Failed to delete recipe image: [error details]"}`
+
+---
+
+## Image Management Endpoints (`/api/images`)
+
+### 21.8. Upload Image
+**POST** `/api/images/upload`
+
+**Description:** Upload an image to S3 bucket (general purpose)
+
+**Content-Type:** `multipart/form-data`
+
+**Request Parameters:**
+- `file` (required): Image file (max 5MB, image types only)
+
+**Example Request:**
+```
+POST /api/images/upload
+Content-Type: multipart/form-data
+
+file: [image file]
+```
+
+**Response Body (200 OK):**
+```json
+{
+  "fileName": "recipe-images/uuid.jpg",
+  "imageUrl": "https://s3.amazonaws.com/bucket/recipe-images/uuid.jpg",
+  "message": "Image uploaded successfully"
+}
+```
+
+**Error Responses:**
+- **400 Bad Request:** `{"error": "File is empty"}` or `{"error": "File must be an image"}` or `{"error": "File size must be less than 5MB"}`
+- **500 Internal Server Error:** `{"error": "Failed to upload image: [error details]"}`
+
+---
+
+### 21.9. Get Image URL
+**GET** `/api/images/{fileName}`
+
+**Description:** Get the presigned URL for an image
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+{
+  "fileName": "recipe-images/uuid.jpg",
+  "imageUrl": "https://s3.amazonaws.com/bucket/recipe-images/uuid.jpg"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "error": "Image not found"
+}
+```
+
+---
+
+### 21.10. Delete Image
+**DELETE** `/api/images/{fileName}`
+
+**Description:** Delete an image from S3 bucket
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+{
+  "message": "Image deleted successfully",
+  "fileName": "recipe-images/uuid.jpg"
+}
+```
+
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "error": "Failed to delete image: [error details]"
+}
+```
+
+---
+
 ## Recipe Book Management Endpoints (`/api/recipebooks`)
 
 ### 22. Create Recipe Book
@@ -1248,6 +1578,7 @@ Original Recipe (ID: 1) ← originalRecipeId: null
     }
   ] (required, at least 1 ingredient),
   "instructions": ["string"] (required, at least 1 instruction),
+  "imageUrl": "string (optional, max 1000 characters, S3 URL or HTTP/HTTPS URL)",
   "isPublic": true,
   "cooked": false,
   "favourite": false,
@@ -1270,6 +1601,7 @@ Original Recipe (ID: 1) ← originalRecipeId: null
     }
   ],
   "instructions": ["string"],
+  "imageUrl": "string (S3 URL or HTTP/HTTPS URL)",
   "isPublic": true,
   "cooked": false,
   "favourite": false,
@@ -1334,6 +1666,7 @@ Original Recipe (ID: 1) ← originalRecipeId: null
   - **unit:** Required, 1-50 characters
   - **quantity:** Required, minimum 0.1
 - **instructions:** Required, at least 1 instruction
+- **imageUrl:** Optional, max 1000 characters, must be valid HTTP/HTTPS URL or S3 path
 - **authorId:** Required, positive integer
 
 ### Recipe Book Validation
