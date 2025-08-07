@@ -42,6 +42,9 @@ public class RecipeRequestDTO {
     
     private Long originalRecipeId;
     
+    // Tag names for recipe categorization
+    private List<String> tagNames;
+    
     // Explicit getter and setter for isPublic to avoid Lombok naming conflicts
     public Boolean getIsPublic() {
         return isPublic;

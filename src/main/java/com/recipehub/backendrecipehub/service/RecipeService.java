@@ -10,11 +10,16 @@ import com.recipehub.backendrecipehub.exception.ValidationException;
 import com.recipehub.backendrecipehub.mapper.RecipeMapper;
 import com.recipehub.backendrecipehub.model.Ingredient;
 import com.recipehub.backendrecipehub.model.Recipe;
+import com.recipehub.backendrecipehub.model.Tag;
 import com.recipehub.backendrecipehub.model.User;
+import com.recipehub.backendrecipehub.repository.RecipeBookRepository;
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
+import com.recipehub.backendrecipehub.repository.TagRepository;
 import com.recipehub.backendrecipehub.repository.UserRepository;
+import com.recipehub.backendrecipehub.specification.RecipeSpecification;
 import com.recipehub.backendrecipehub.service.S3Service;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,11 +37,17 @@ public class RecipeService {
 
     private final RecipeRepository recipeRepository;
     private final UserRepository userRepository;
+    private final TagRepository tagRepository;
+    private final RecipeBookRepository recipeBookRepository;
     private final S3Service s3Service;
 
-    public RecipeService(RecipeRepository recipeRepository, UserRepository userRepository, S3Service s3Service) {
+    @Autowired
+    public RecipeService(RecipeRepository recipeRepository, UserRepository userRepository, 
+                       TagRepository tagRepository, RecipeBookRepository recipeBookRepository) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
+        this.tagRepository = tagRepository;
+        this.recipeBookRepository = recipeBookRepository;
         this.s3Service = s3Service;
     }
 
@@ -44,25 +55,63 @@ public class RecipeService {
         Recipe entity = RecipeMapper.toEntity(dto, user, originalRecipe);
         // Set initial updatedAt timestamp
         entity.setUpdatedAt(LocalDateTime.now());
+        
+        // Handle tags if provided
+        if (dto.getTagNames() != null && !dto.getTagNames().isEmpty()) {
+            List<Tag> tags = dto.getTagNames().stream()
+                    .map(tagName -> tagRepository.findByName(tagName)
+                            .orElseGet(() -> {
+                                Tag newTag = new Tag();
+                                newTag.setName(tagName);
+                                return tagRepository.save(newTag);
+                            }))
+                    .collect(Collectors.toList());
+            entity.setTags(tags);
+        }
+        
         Recipe savedRecipe = recipeRepository.save(entity);
         return RecipeMapper.toDTO(savedRecipe);
     }
 
-    public RecipeResponseDTO createRecipeWithValidation(RecipeRequestDTO dto) {
-        // Find the user
-        User user = userRepository.findById(dto.getAuthorId())
-                .orElseThrow(() -> new UserNotFoundException(dto.getAuthorId()));
+    @Transactional
+    public RecipeResponseDTO createRecipeWithValidation(RecipeRequestDTO requestDTO) {
+        // Validate user exists
+        User author = userRepository.findById(requestDTO.getAuthorId())
+                .orElseThrow(() -> new RecipeNotFoundException("User not found with ID: " + requestDTO.getAuthorId()));
 
-        // Find the original recipe if specified
+        // Find original recipe if specified
         Recipe originalRecipe = null;
-        if (dto.getOriginalRecipeId() != null) {
-            originalRecipe = recipeRepository.findById(dto.getOriginalRecipeId())
-                    .orElseThrow(() -> new RecipeNotFoundException(dto.getOriginalRecipeId()));
+        if (requestDTO.getOriginalRecipeId() != null) {
+            originalRecipe = recipeRepository.findById(requestDTO.getOriginalRecipeId())
+                    .orElse(null); // Don't throw exception if not found
         }
 
-        return createRecipe(dto, user, originalRecipe);
+        Recipe recipe = RecipeMapper.toEntity(requestDTO, author, originalRecipe);
+        recipe.setCreatedAt(LocalDateTime.now());
+        recipe.setUpdatedAt(LocalDateTime.now());
+
+        // Handle tags
+        if (requestDTO.getTagNames() != null && !requestDTO.getTagNames().isEmpty()) {
+            List<Tag> tags = requestDTO.getTagNames().stream()
+                    .map(tagName -> {
+                        Optional<Tag> existingTag = tagRepository.findByName(tagName);
+                        if (existingTag.isPresent()) {
+                            return existingTag.get();
+                        } else {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return tagRepository.save(newTag);
+                        }
+                    })
+                    .collect(Collectors.toList());
+            recipe.setTags(tags);
+        }
+
+        Recipe savedRecipe = recipeRepository.save(recipe);
+        return RecipeMapper.toDTO(savedRecipe);
     }
 
+    @Transactional(readOnly = true)
     public List<RecipeResponseDTO> getAllRecipes() {
         List<Recipe> recipes = recipeRepository.findAll();
         return recipes.stream()
@@ -70,6 +119,7 @@ public class RecipeService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<RecipeResponseDTO> getAllPublicRecipes() {
         List<Recipe> recipes = recipeRepository.findByIsPublicTrue();
         return recipes.stream()
@@ -77,9 +127,10 @@ public class RecipeService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public Optional<RecipeResponseDTO> getRecipeById(Long id) {
-        Optional<Recipe> recipe = recipeRepository.findById(id);
-        return recipe.map(RecipeMapper::toDTO);
+        return recipeRepository.findById(id)
+                .map(RecipeMapper::toDTO);
     }
 
     public RecipeResponseDTO updateRecipe(Long id, RecipeRequestDTO dto, Long userId) {
@@ -93,6 +144,19 @@ public class RecipeService {
         
         RecipeMapper.updateEntity(dto, recipe);
         
+        // Update tags if provided
+        if (dto.getTagNames() != null) {
+            List<Tag> tags = dto.getTagNames().stream()
+                    .map(tagName -> tagRepository.findByName(tagName)
+                            .orElseGet(() -> {
+                                Tag newTag = new Tag();
+                                newTag.setName(tagName);
+                                return tagRepository.save(newTag);
+                            }))
+                    .collect(Collectors.toList());
+            recipe.setTags(tags);
+        }
+        
         // Update the updatedAt timestamp only when recipe is actually modified
         recipe.setUpdatedAt(LocalDateTime.now());
         
@@ -100,85 +164,86 @@ public class RecipeService {
         return RecipeMapper.toDTO(savedRecipe);
     }
 
-    public RecipeResponseDTO updateRecipeWithValidation(Long id, RecipeRequestDTO dto, Long userId) {
-        if (userId == null) {
-            throw new ValidationException("User ID is required");
+    @Transactional
+    public RecipeResponseDTO updateRecipeWithValidation(Long id, RecipeRequestDTO requestDTO, Long userId) {
+        Recipe existingRecipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new RecipeNotFoundException(id));
+
+        // Check if user is authorized to update this recipe
+        if (!existingRecipe.getAuthor().getId().equals(userId)) {
+            throw new RecipeNotFoundException("User not authorized to update this recipe");
         }
-        
-        return updateRecipe(id, dto, userId);
+
+        // Update basic fields using the mapper
+        RecipeMapper.updateEntity(requestDTO, existingRecipe);
+        existingRecipe.setUpdatedAt(LocalDateTime.now());
+
+        // Handle tags
+        if (requestDTO.getTagNames() != null) {
+            List<Tag> tags = requestDTO.getTagNames().stream()
+                    .map(tagName -> {
+                        Optional<Tag> existingTag = tagRepository.findByName(tagName);
+                        if (existingTag.isPresent()) {
+                            return existingTag.get();
+                        } else {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return tagRepository.save(newTag);
+                        }
+                    })
+                    .collect(Collectors.toList());
+            existingRecipe.setTags(tags);
+        }
+
+        Recipe updatedRecipe = recipeRepository.save(existingRecipe);
+        return RecipeMapper.toDTO(updatedRecipe);
     }
 
-    public RecipeResponseDTO updateLikeCount(Long id, Integer likeCount) {
+    @Transactional
+    public RecipeResponseDTO updateLikeCount(Long id, int likeCount) {
         Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
-        recipe.setLikeCount(likeCount);
         
-        Recipe savedRecipe = recipeRepository.save(recipe);
-        return RecipeMapper.toDTO(savedRecipe);
+        recipe.setLikeCount(likeCount);
+        recipe.setUpdatedAt(LocalDateTime.now());
+        
+        Recipe updatedRecipe = recipeRepository.save(recipe);
+        return RecipeMapper.toDTO(updatedRecipe);
     }
 
-    public RecipeResponseDTO forkRecipe(Long recipeToForkId, RecipeRequestDTO modifications, Long userId) {
-        // Find the recipe being forked
-        Recipe recipeToFork = recipeRepository.findById(recipeToForkId)
-                .orElseThrow(() -> new RecipeNotFoundException(recipeToForkId));
+    @Transactional
+    public RecipeResponseDTO forkRecipe(Long originalId, RecipeRequestDTO modifications, Long userId) {
+        Recipe originalRecipe = recipeRepository.findById(originalId)
+                .orElseThrow(() -> new RecipeNotFoundException(originalId));
 
-        // Find the user who is forking
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new RecipeNotFoundException("User not found with ID: " + userId));
 
-        // Determine the original recipe
-        Recipe originalRecipe = recipeToFork.getOriginalRecipe();
-        if (originalRecipe == null) {
-            // If the recipe being forked has no original, it is the original
-            originalRecipe = recipeToFork;
+        Recipe forkedRecipe = new Recipe();
+        forkedRecipe.setTitle(modifications != null && modifications.getTitle() != null ? 
+                modifications.getTitle() : originalRecipe.getTitle() + " (Forked)");
+        forkedRecipe.setDescription(modifications != null && modifications.getDescription() != null ? 
+                modifications.getDescription() : originalRecipe.getDescription());
+        forkedRecipe.setIngredients(originalRecipe.getIngredients()); // Use original ingredients
+        forkedRecipe.setInstructions(modifications != null && modifications.getInstructions() != null ? 
+                modifications.getInstructions() : originalRecipe.getInstructions());
+        forkedRecipe.setPublic(modifications != null && modifications.getIsPublic() != null ? 
+                modifications.getIsPublic() : originalRecipe.isPublic());
+        forkedRecipe.setCooked(false);
+        forkedRecipe.setFavourite(false);
+        forkedRecipe.setLikeCount(0);
+        forkedRecipe.setAuthor(author);
+        forkedRecipe.setOriginalRecipe(originalRecipe);
+        forkedRecipe.setCreatedAt(LocalDateTime.now());
+        forkedRecipe.setUpdatedAt(LocalDateTime.now());
+
+        // Copy tags from original recipe
+        if (originalRecipe.getTags() != null) {
+            forkedRecipe.setTags(originalRecipe.getTags());
         }
 
-        // Create a DTO from the recipe being forked
-        RecipeRequestDTO forkDTO = new RecipeRequestDTO();
-        forkDTO.setTitle(recipeToFork.getTitle());
-        forkDTO.setDescription(recipeToFork.getDescription());
-        forkDTO.setIngredients(recipeToFork.getIngredients().stream()
-                .map(ingredient -> {
-                    IngredientDTO ingredientDTO = new IngredientDTO();
-                    ingredientDTO.setName(ingredient.getName());
-                    ingredientDTO.setUnit(ingredient.getUnit());
-                    ingredientDTO.setQuantity(ingredient.getQuantity());
-                    return ingredientDTO;
-                })
-                .collect(Collectors.toList()));
-        forkDTO.setInstructions(recipeToFork.getInstructions());
-        forkDTO.setIsPublic(recipeToFork.isPublic());
-        forkDTO.setCooked(recipeToFork.isCooked());
-        forkDTO.setFavourite(recipeToFork.isFavourite());
-        forkDTO.setLikeCount(0); // Reset like count for new fork
-
-        // Apply modifications if provided
-        if (modifications != null) {
-            if (modifications.getTitle() != null) {
-                forkDTO.setTitle(modifications.getTitle());
-            }
-            if (modifications.getDescription() != null) {
-                forkDTO.setDescription(modifications.getDescription());
-            }
-            if (modifications.getIngredients() != null) {
-                forkDTO.setIngredients(modifications.getIngredients());
-            }
-            if (modifications.getInstructions() != null) {
-                forkDTO.setInstructions(modifications.getInstructions());
-            }
-            if (modifications.getIsPublic() != null) {
-                forkDTO.setIsPublic(modifications.getIsPublic());
-            }
-            if (modifications.getCooked() != null) {
-                forkDTO.setCooked(modifications.getCooked());
-            }
-            if (modifications.getFavourite() != null) {
-                forkDTO.setFavourite(modifications.getFavourite());
-            }
-        }
-
-        // Use the existing createRecipe method
-        return createRecipe(forkDTO, user, originalRecipe);
+        Recipe savedForkedRecipe = recipeRepository.save(forkedRecipe);
+        return RecipeMapper.toDTO(savedForkedRecipe);
     }
 
     @Transactional(readOnly = true)
@@ -197,7 +262,87 @@ public class RecipeService {
                 .collect(Collectors.toList());
     }
 
-
+    // Enhanced search method with multiple criteria using JPA Specifications
+    @Transactional(readOnly = true)
+    public List<RecipeResponseDTO> searchRecipes(
+            String title, List<String> tags, String author, Boolean isPublic,
+            Boolean cooked, Boolean favourite, String difficulty, String cuisine,
+            String mealType, String dietary, String cookingMethod, String occasion,
+            String season, String health, String ingredient, String specialFeature) {
+        
+        // Build specification
+        Specification<Recipe> spec = Specification.where(null);
+        
+        if (title != null && !title.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasTitle(title));
+        }
+        
+        if (isPublic != null) {
+            spec = spec.and(RecipeSpecification.isPublic(isPublic));
+        }
+        
+        if (cooked != null) {
+            spec = spec.and(RecipeSpecification.isCooked(cooked));
+        }
+        
+        if (favourite != null) {
+            spec = spec.and(RecipeSpecification.isFavourite(favourite));
+        }
+        
+        if (author != null && !author.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasAuthor(author));
+        }
+        
+        if (tags != null && !tags.isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasAnyTag(tags));
+        }
+        
+        if (cuisine != null && !cuisine.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasCuisine(cuisine));
+        }
+        
+        if (difficulty != null && !difficulty.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasDifficulty(difficulty));
+        }
+        
+        if (mealType != null && !mealType.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasMealType(mealType));
+        }
+        
+        if (dietary != null && !dietary.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasDietary(dietary));
+        }
+        
+        if (cookingMethod != null && !cookingMethod.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasCookingMethod(cookingMethod));
+        }
+        
+        if (occasion != null && !occasion.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasOccasion(occasion));
+        }
+        
+        if (season != null && !season.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasSeason(season));
+        }
+        
+        if (health != null && !health.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasHealth(health));
+        }
+        
+        if (ingredient != null && !ingredient.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasIngredient(ingredient));
+        }
+        
+        if (specialFeature != null && !specialFeature.trim().isEmpty()) {
+            spec = spec.and(RecipeSpecification.hasSpecialFeature(specialFeature));
+        }
+        
+        // Execute query
+        List<Recipe> recipes = recipeRepository.findAll(spec);
+        return recipes.stream()
+                .map(RecipeMapper::toDTO)
+                .collect(Collectors.toList());
+    }
 
     public List<RecipeResponseDTO> getUserCookedRecipes(Long userId) {
         List<Recipe> recipes = recipeRepository.findByAuthorIdAndCookedTrue(userId);

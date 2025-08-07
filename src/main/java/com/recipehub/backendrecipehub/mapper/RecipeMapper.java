@@ -37,6 +37,14 @@ public class RecipeMapper {
         dto.setOriginalRecipeId(recipe.getOriginalRecipe() != null ? recipe.getOriginalRecipe().getId() : null);
         dto.setCreatedAt(recipe.getCreatedAt());
         dto.setUpdatedAt(recipe.getUpdatedAt());
+        
+        // Map tags
+        if (recipe.getTags() != null) {
+            dto.setTags(recipe.getTags().stream()
+                    .map(Tag::getName)
+                    .collect(Collectors.toList()));
+        }
+        
         return dto;
     }
 
@@ -90,5 +98,6 @@ public class RecipeMapper {
         if (dto.getLikeCount() != null) {
             recipe.setLikeCount(dto.getLikeCount());
         }
+        // Note: Tags are handled separately in the service layer
     }
 }

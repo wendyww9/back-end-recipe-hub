@@ -1460,6 +1460,330 @@ file: [image file]
 
 ---
 
+## Tag Management Endpoints (`/api/tags`)
+
+### 28. Get All Tags
+**GET** `/api/tags`
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "name": "Italian",
+    "recipeCount": 1
+  },
+  {
+    "id": 2,
+    "name": "Mexican",
+    "recipeCount": 1
+  },
+  {
+    "id": 3,
+    "name": "Asian",
+    "recipeCount": 0
+  }
+]
+```
+
+**Key Features:**
+- **All Tags:** Returns all available tags with recipe counts
+- **Sorted by ID:** Tags are returned in order of creation
+- **Recipe Count:** Shows how many recipes use each tag
+
+---
+
+### 29. Get Popular Tags
+**GET** `/api/tags/popular`
+
+**Request Parameters:**
+- `limit` (query parameter): Maximum number of tags to return (optional, default: 10)
+
+**Request Body:** None
+
+**Example Request:**
+```
+GET /api/tags/popular?limit=5
+```
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 42,
+    "name": "Quick",
+    "recipeCount": 2
+  },
+  {
+    "id": 1,
+    "name": "Italian",
+    "recipeCount": 1
+  },
+  {
+    "id": 2,
+    "name": "Mexican",
+    "recipeCount": 1
+  },
+  {
+    "id": 13,
+    "name": "Dinner",
+    "recipeCount": 1
+  },
+  {
+    "id": 37,
+    "name": "Easy",
+    "recipeCount": 1
+  }
+]
+```
+
+**Key Features:**
+- **Sorted by Popularity:** Tags are sorted by recipe count (descending)
+- **Configurable Limit:** Can specify how many tags to return
+- **Recipe Count:** Shows how many recipes use each tag
+
+---
+
+### 30. Get Category Tags
+**GET** `/api/tags/categories`
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "name": "Italian",
+    "recipeCount": 1
+  },
+  {
+    "id": 2,
+    "name": "Mexican",
+    "recipeCount": 1
+  },
+  {
+    "id": 11,
+    "name": "Breakfast",
+    "recipeCount": 0
+  },
+  {
+    "id": 12,
+    "name": "Lunch",
+    "recipeCount": 0
+  },
+  {
+    "id": 13,
+    "name": "Dinner",
+    "recipeCount": 1
+  },
+  {
+    "id": 19,
+    "name": "Vegetarian",
+    "recipeCount": 0
+  },
+  {
+    "id": 37,
+    "name": "Easy",
+    "recipeCount": 1
+  },
+  {
+    "id": 42,
+    "name": "Quick",
+    "recipeCount": 2
+  },
+  {
+    "id": 57,
+    "name": "Healthy",
+    "recipeCount": 0
+  }
+]
+```
+
+**Key Features:**
+- **Main Categories:** Returns curated list of main category tags
+- **Cross-Category:** Includes tags from different categories (cuisine, meal type, dietary, etc.)
+- **Recipe Count:** Shows how many recipes use each tag
+
+---
+
+### 31. Initialize Predefined Tags
+**POST** `/api/tags/initialize`
+
+**Request Body:** None
+
+**Response Body (200 OK):**
+```json
+"Predefined tags initialized successfully"
+```
+
+**Key Features:**
+- **One-Time Setup:** Populates database with 80+ predefined tags
+- **Categories Included:** Cuisine types, meal types, dietary restrictions, cooking methods, difficulty levels, occasions, seasons, health categories, ingredient types, and special features
+- **Safe Operation:** Won't duplicate tags if already initialized
+
+**Tag Categories:**
+- **Cuisine Types:** Italian, Mexican, Asian, French, Indian, Mediterranean, American, Thai, Japanese, Chinese
+- **Meal Types:** Breakfast, Lunch, Dinner, Dessert, Appetizer, Snack, Brunch, Late Night
+- **Dietary:** Vegetarian, Vegan, Gluten-Free, Dairy-Free, Low-Carb, Keto, Paleo, Halal, Kosher
+- **Cooking Methods:** Baked, Grilled, Fried, Steamed, Roasted, Slow Cooker, Instant Pot, Air Fryer, Smoked
+- **Difficulty:** Easy, Medium, Hard, Beginner, Advanced, Quick, 30-Minute Meals
+- **Occasions:** Holiday, Birthday, Anniversary, Party, Date Night, Family Dinner, Potluck, Picnic
+- **Seasons:** Spring, Summer, Fall, Winter, Seasonal
+- **Health:** Healthy, Low-Calorie, High-Protein, Low-Sodium, Heart-Healthy, Anti-Inflammatory
+- **Ingredients:** Chicken, Beef, Pork, Fish, Seafood, Pasta, Rice, Vegetables, Fruits, Nuts, Cheese
+- **Special Features:** One-Pot, Make-Ahead, Freezer-Friendly, Kid-Friendly, Crowd-Pleaser, Comfort Food, Gourmet
+
+---
+
+## Enhanced Recipe Search Endpoints (`/api/recipes`)
+
+### 32. Enhanced Recipe Search
+**GET** `/api/recipes/search`
+
+**Request Parameters (All Optional):**
+- `title` (string): Search for recipes with title containing this text
+- `tags` (array): Search for recipes with any of these tags
+- `author` (string): Search for recipes by author username
+- `isPublic` (boolean): Filter by public/private status
+- `cooked` (boolean): Filter by cooked status
+- `favourite` (boolean): Filter by favourite status
+- `cuisine` (string): Filter by cuisine type (e.g., "Italian", "Mexican")
+- `difficulty` (string): Filter by difficulty level (e.g., "Easy", "Medium", "Hard")
+- `mealType` (string): Filter by meal type (e.g., "Breakfast", "Dinner")
+- `dietary` (string): Filter by dietary restriction (e.g., "Vegetarian", "Vegan")
+- `cookingMethod` (string): Filter by cooking method (e.g., "Baked", "Grilled")
+- `occasion` (string): Filter by occasion (e.g., "Holiday", "Party")
+- `season` (string): Filter by season (e.g., "Summer", "Winter")
+- `health` (string): Filter by health category (e.g., "Healthy", "Low-Calorie")
+- `ingredient` (string): Filter by ingredient type (e.g., "Chicken", "Pasta")
+- `specialFeature` (string): Filter by special feature (e.g., "Quick", "One-Pot")
+
+**Example Requests:**
+
+**Basic title search:**
+```
+GET /api/recipes/search?title=pasta
+```
+
+**Single tag search:**
+```
+GET /api/recipes/search?tags=Italian
+```
+
+**Multiple tags search:**
+```
+GET /api/recipes/search?tags=Quick&tags=Easy
+```
+
+**Cuisine filter:**
+```
+GET /api/recipes/search?cuisine=Mexican
+```
+
+**Complex search:**
+```
+GET /api/recipes/search?title=pasta&cuisine=Italian&difficulty=Easy&tags=Quick
+```
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "title": "Quick Italian Pasta",
+    "description": "A quick and easy Italian pasta dish",
+    "ingredients": [
+      {
+        "name": "Pasta",
+        "unit": "lb",
+        "quantity": 1.0
+      },
+      {
+        "name": "Olive oil",
+        "unit": "tbsp",
+        "quantity": 2.0
+      }
+    ],
+    "instructions": [
+      "Boil pasta according to package directions",
+      "Heat olive oil in pan",
+      "Add minced garlic and cook until fragrant"
+    ],
+    "isPublic": true,
+    "cooked": false,
+    "favourite": false,
+    "likeCount": 0,
+    "authorId": 1,
+    "authorUsername": "testuser",
+    "originalRecipeId": null,
+    "tags": [
+      "Italian",
+      "Quick",
+      "Easy",
+      "Pasta"
+    ],
+    "createdAt": "2025-08-06T00:46:55.063737",
+    "updatedAt": "2025-08-06T00:46:55.056021"
+  }
+]
+```
+
+**Empty Response (200 OK):**
+```json
+[]
+```
+
+**Key Features:**
+- **Database-Level Filtering:** Uses JPA Specifications for efficient SQL queries
+- **Multiple Criteria:** Can combine any combination of search parameters
+- **Case-Insensitive:** All text searches are case-insensitive
+- **Tag Categories:** Support for specific tag categories (cuisine, difficulty, etc.)
+- **Generic Tags:** Support for generic tag search with multiple values
+- **Performance:** Efficient database queries instead of in-memory filtering
+- **Flexible:** Can search with any combination of parameters
+
+**Search Examples:**
+
+**Find all Italian recipes:**
+```
+GET /api/recipes/search?cuisine=Italian
+```
+
+**Find quick and easy recipes:**
+```
+GET /api/recipes/search?tags=Quick&tags=Easy
+```
+
+**Find dinner recipes with pasta:**
+```
+GET /api/recipes/search?mealType=Dinner&ingredient=Pasta
+```
+
+**Find healthy vegetarian recipes:**
+```
+GET /api/recipes/search?dietary=Vegetarian&health=Healthy
+```
+
+**Find recipes by specific author:**
+```
+GET /api/recipes/search?author=testuser
+```
+
+**Find only public recipes:**
+```
+GET /api/recipes/search?isPublic=true
+```
+
+**Find recipes with multiple criteria:**
+```
+GET /api/recipes/search?title=pasta&cuisine=Italian&difficulty=Easy&tags=Quick&mealType=Dinner
+```
+
+---
+
 ## Data Transfer Objects (DTOs)
 
 ### UserRequestDTO
@@ -1500,7 +1824,8 @@ file: [image file]
   "cooked": false,
   "favourite": false,
   "authorId": 1 (required),
-  "originalRecipeId": null
+  "originalRecipeId": null,
+  "tagNames": ["Italian", "Quick", "Easy"] (optional, array of tag names)
 }
 ```
 
@@ -1526,6 +1851,7 @@ file: [image file]
   "authorId": 1,
   "authorUsername": "string",
   "originalRecipeId": null,
+  "tags": ["Italian", "Quick", "Easy"],
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:22.108822"
 }
@@ -1549,6 +1875,15 @@ file: [image file]
   "isPublic": true,
   "userId": 1,
   "recipeIds": [1, 2, 3] (optional, array of recipe IDs)
+}
+```
+
+### TagDTO
+```json
+{
+  "id": 1,
+  "name": "string",
+  "recipeCount": 5
 }
 ```
 
@@ -1640,4 +1975,8 @@ All error responses follow a consistent format:
 15. **Recipe Books:** New feature for organizing recipes into collections
 16. **Validation:** Comprehensive input validation with detailed error messages
 17. **Error Handling:** Global exception handling with consistent error response format
-18. **Business Logic Separation:** Controllers are now purely REST endpoints with business logic moved to services 
+18. **Business Logic Separation:** Controllers are now purely REST endpoints with business logic moved to services
+19. **Tag System:** Comprehensive tag system for recipe categorization and filtering
+20. **Enhanced Search:** Database-level filtering using JPA Specifications for efficient search
+21. **Tag Categories:** Support for specific tag categories (cuisine, difficulty, meal type, etc.)
+22. **Predefined Tags:** 80+ predefined tags across multiple categories for consistent categorization 
