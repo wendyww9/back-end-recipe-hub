@@ -58,13 +58,6 @@ public class Recipe {
 
     private int likeCount;
 
-    @ManyToMany
-    @JoinTable(name = "recipe_tag",
-            joinColumns = @JoinColumn(name = "recipe_id"),
-            inverseJoinColumns = @JoinColumn(name = "tag_id")
-    )
-    private List<Tag> tags;
-
     @CreationTimestamp
     private LocalDateTime createdAt;
 

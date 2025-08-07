@@ -19,7 +19,6 @@ public class RecipeResponseDTO {
     private Long authorId;
     private String authorUsername;
     private Long originalRecipeId;
-    private List<String> tags; // Tag names for the recipe
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     

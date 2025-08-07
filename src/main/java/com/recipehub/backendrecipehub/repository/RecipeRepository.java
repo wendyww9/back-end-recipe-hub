@@ -3,13 +3,11 @@ package com.recipehub.backendrecipehub.repository;
 import com.recipehub.backendrecipehub.model.Recipe;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface RecipeRepository extends JpaRepository<Recipe, Long>, JpaSpecificationExecutor<Recipe> {
+public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     
     // Search by recipe name (title)
     List<Recipe> findByTitleContainingIgnoreCase(String title);
