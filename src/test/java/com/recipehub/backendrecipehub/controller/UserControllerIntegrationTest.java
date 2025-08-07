@@ -107,7 +107,7 @@ class UserControllerIntegrationTest {
         passwordUpdate.setCurrentPassword("password");
         passwordUpdate.setNewPassword("newpassword");
 
-        mockMvc.perform(put("/api/users/" + testUser.getId() + "/password")
+        mockMvc.perform(put("/api/users/" + testUser.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(passwordUpdate)))
                 .andExpect(status().isOk());
@@ -119,7 +119,7 @@ class UserControllerIntegrationTest {
         emailUpdate.setCurrentPassword("password");
         emailUpdate.setEmail("newemail@example.com");
 
-        mockMvc.perform(put("/api/users/" + testUser.getId() + "/email")
+        mockMvc.perform(put("/api/users/" + testUser.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(emailUpdate)))
                 .andExpect(status().isOk());

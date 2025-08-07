@@ -927,7 +927,7 @@ PUT /api/recipes/1/likecount?likeCount=15
 
 ---
 
-### 21. Fork Recipe
+### 21.1. Fork Recipe
 **POST** `/api/recipes/{id}/fork`
 
 **Description:** Creates a copy of an existing recipe with optional modifications. Similar to GitHub's fork functionality.
@@ -1287,94 +1287,11 @@ file: [image file]
 - **404 Not Found:** `{"error": "Recipe not found with id: 1"}`
 - **500 Internal Server Error:** `{"error": "Failed to delete recipe image: [error details]"}`
 
----
 
-## Image Management Endpoints (`/api/images`)
-
-### 21.8. Upload Image
-**POST** `/api/images/upload`
-
-**Description:** Upload an image to S3 bucket (general purpose)
-
-**Content-Type:** `multipart/form-data`
-
-**Request Parameters:**
-- `file` (required): Image file (max 5MB, image types only)
-
-**Example Request:**
-```
-POST /api/images/upload
-Content-Type: multipart/form-data
-
-file: [image file]
-```
-
-**Response Body (200 OK):**
-```json
-{
-  "fileName": "recipe-images/uuid.jpg",
-  "imageUrl": "https://s3.amazonaws.com/bucket/recipe-images/uuid.jpg",
-  "message": "Image uploaded successfully"
-}
-```
-
-**Error Responses:**
-- **400 Bad Request:** `{"error": "File is empty"}` or `{"error": "File must be an image"}` or `{"error": "File size must be less than 5MB"}`
-- **500 Internal Server Error:** `{"error": "Failed to upload image: [error details]"}`
-
----
-
-### 21.9. Get Image URL
-**GET** `/api/images/{fileName}`
-
-**Description:** Get the presigned URL for an image
-
-**Request Body:** None
-
-**Response Body (200 OK):**
-```json
-{
-  "fileName": "recipe-images/uuid.jpg",
-  "imageUrl": "https://s3.amazonaws.com/bucket/recipe-images/uuid.jpg"
-}
-```
-
-**Error Response (404 Not Found):**
-```json
-{
-  "error": "Image not found"
-}
-```
-
----
-
-### 21.10. Delete Image
-**DELETE** `/api/images/{fileName}`
-
-**Description:** Delete an image from S3 bucket
-
-**Request Body:** None
-
-**Response Body (200 OK):**
-```json
-{
-  "message": "Image deleted successfully",
-  "fileName": "recipe-images/uuid.jpg"
-}
-```
-
-**Error Response (500 Internal Server Error):**
-```json
-{
-  "error": "Failed to delete image: [error details]"
-}
-```
-
----
 
 ## Recipe Book Management Endpoints (`/api/recipebooks`)
 
-### 22. Create Recipe Book
+### 21.8. Create Recipe Book
 **POST** `/api/recipebooks`
 
 **Request Body:**
@@ -1406,7 +1323,7 @@ file: [image file]
 
 ---
 
-### 23. Get All Recipe Books
+### 21.9. Get All Recipe Books
 **GET** `/api/recipebooks`
 
 **Request Body:** None
@@ -1435,7 +1352,7 @@ file: [image file]
 
 ---
 
-### 24. Get All Public Recipe Books
+### 21.10. Get All Public Recipe Books
 **GET** `/api/recipebooks/public`
 
 **Request Body:** None
@@ -1460,7 +1377,7 @@ file: [image file]
 
 ---
 
-### 25. Get Recipe Book by ID
+### 21.11. Get Recipe Book by ID
 **GET** `/api/recipebooks/{id}`
 
 **Request Body:** None
@@ -1486,7 +1403,7 @@ file: [image file]
 
 ---
 
-### 26. Update Recipe Book
+### 21.12. Update Recipe Book
 **PUT** `/api/recipebooks/{id}`
 
 **Request Body (Partial Update Supported):**
@@ -1524,7 +1441,7 @@ file: [image file]
 
 ---
 
-### 27. Delete Recipe Book
+### 21.13. Delete Recipe Book
 **DELETE** `/api/recipebooks/{id}`
 
 **Request Body:** None

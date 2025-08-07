@@ -123,6 +123,10 @@ public class RecipeController {
             response.put("recipe", updatedRecipe);
             response.put("message", "Recipe image updated successfully");
             return ResponseEntity.ok(response);
+        } catch (RecipeNotFoundException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to update recipe: " + e.getMessage());

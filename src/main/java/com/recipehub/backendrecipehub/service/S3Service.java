@@ -8,6 +8,8 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -58,6 +60,27 @@ public class S3Service {
         return fileName;
     }
 
+    public boolean imageExists(String fileName) {
+        if (fileName == null || fileName.isEmpty() || s3Client == null) {
+            return false;
+        }
+
+        try {
+            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(fileName)
+                    .build();
+            
+            s3Client.headObject(headObjectRequest);
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        } catch (Exception e) {
+            // Log the exception but return false for any other errors
+            return false;
+        }
+    }
+
     public String getImageUrl(String fileName) {
         if (fileName == null || fileName.isEmpty()) {
             return null;
@@ -65,6 +88,11 @@ public class S3Service {
         
         if (s3Presigner == null) {
             throw new UnsupportedOperationException("S3 client not configured. Please set AWS credentials.");
+        }
+
+        // Check if the file exists before generating presigned URL
+        if (!imageExists(fileName)) {
+            return null;
         }
 
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()

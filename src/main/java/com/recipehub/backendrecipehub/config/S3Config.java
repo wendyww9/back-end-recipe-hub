@@ -10,7 +10,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 
 @Configuration
-@ConditionalOnProperty(name = "aws.access.key.id", havingValue = "", matchIfMissing = false)
+@ConditionalOnProperty(name = "aws.s3.enabled", havingValue = "true")
 public class S3Config {
 
     @Value("${aws.access.key.id:}")
