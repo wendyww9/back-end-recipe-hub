@@ -18,6 +18,7 @@ import com.recipehub.backendrecipehub.repository.TagRepository;
 import com.recipehub.backendrecipehub.repository.UserRepository;
 import com.recipehub.backendrecipehub.specification.RecipeSpecification;
 import com.recipehub.backendrecipehub.service.S3Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -43,7 +44,7 @@ public class RecipeService {
 
     @Autowired
     public RecipeService(RecipeRepository recipeRepository, UserRepository userRepository, 
-                       TagRepository tagRepository, RecipeBookRepository recipeBookRepository) {
+                       TagRepository tagRepository, RecipeBookRepository recipeBookRepository, S3Service s3Service) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
         this.tagRepository = tagRepository;
