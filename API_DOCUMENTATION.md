@@ -546,13 +546,13 @@ tail -f logs/application.log
 
 ## Recipe Management Endpoints (`/api/recipes`)
 
-### 14. Create Recipe (Unified - with or without image)
+### 14. Create Recipe (Supports both with and without image)
 **POST** `/api/recipes`
 
 **Content-Type:** `multipart/form-data`
 
 **Parameters:**
-- `file` (optional): Image file to upload
+- `file` (optional): Image file to upload (max 5MB, image types only)
 - `title` (required): Recipe title (1-255 characters)
 - `description` (optional): Recipe description (max 1000 characters)
 - `ingredients` (required): JSON array of ingredients
@@ -561,6 +561,9 @@ tail -f logs/application.log
 - `isPublic` (optional): Whether recipe is public (default: false)
 - `cooked` (optional): Whether user has cooked this (default: false)
 - `favourite` (optional): Whether user has favorited this (default: false)
+- `tagNames` (optional): JSON array of tag names (e.g., ["Italian", "Quick", "Easy"])
+
+**Note:** This endpoint handles both creating recipes with and without images. The `file` parameter is optional - if provided, the image will be uploaded to S3 and the `imageUrl` will be set in the response.
 
 
 **Example without image:**
@@ -572,6 +575,7 @@ curl -X POST http://localhost:8080/api/recipes \
   -F "instructions=[\"Mix dry ingredients\",\"Mix wet ingredients\",\"Bake at 350F\"]" \
   -F "authorId=1" \
   -F "isPublic=true" \
+  -F "tagNames=[\"Dessert\",\"Baking\",\"Sweet\"]" \
 
 ```
 
@@ -585,6 +589,7 @@ curl -X POST http://localhost:8080/api/recipes \
   -F "instructions=[\"Boil pasta\",\"Cook bacon\",\"Mix with eggs\"]" \
   -F "authorId=1" \
   -F "isPublic=true" \
+  -F "tagNames=[\"Italian\",\"Pasta\",\"Quick\"]" \
 
 ```
 
@@ -609,6 +614,7 @@ curl -X POST http://localhost:8080/api/recipes \
   "authorId": 1,
   "authorUsername": "string",
   "originalRecipeId": null,
+  "tags": ["Dessert", "Baking", "Sweet"],
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:22.108822"
 }
@@ -820,48 +826,79 @@ GET /api/recipes/search?title=chocolate
 ### 19. Update Recipe
 **PUT** `/api/recipes/{id}`
 
+**Authorization:** Only the recipe owner (author) can update the recipe.
+
 **Request Body (Partial Update Supported):**
 ```json
 {
+  "authorId": 1,
   "title": "string (optional, 1-255 characters)",
   "description": "string (optional, max 1000 characters)",
   "ingredients": [
     {
-      "name": "string (required, 1-100 characters)",
-      "unit": "string (required, 1-50 characters)",
-      "quantity": 1.0 (required, minimum 0.1)
+      "name": "string (1-100 characters)",
+      "unit": "string (1-50 characters)",
+      "quantity": 1.0 (minimum 0.1)
     }
-  ] (optional, at least 1 ingredient if provided),
-  "instructions": ["string"] (optional, at least 1 instruction if provided),
+  ] (optional),
+  "instructions": ["string"] (optional),
+  "imageUrl": "string (optional, valid HTTP/HTTPS URL or S3 path)",
   "isPublic": true,
   "cooked": false,
   "favourite": false,
-  "userId": 1
+  "likeCount": 0,
+  "tagNames": ["string"] (optional, replaces all existing tags)
 }
 ```
-*Note: All fields are optional for partial updates*
+
+**Key Features:**
+- **Partial Updates:** Only provided fields are updated; existing data is preserved for omitted fields
+- **Authorization Required:** `authorId` must match the recipe owner
+- **Tag Management:** If `tagNames` is provided, it replaces all existing tags; if omitted, existing tags are preserved
+- **No Validation Requirements:** Only `authorId` is required for authorization
+
+**Example Request - Add Tags Only:**
+```json
+{
+  "authorId": 2,
+  "tagNames": ["dinner", "quick", "healthy"]
+}
+```
+
+**Example Request - Update Multiple Fields:**
+```json
+{
+  "authorId": 1,
+  "title": "Updated Recipe Title",
+  "description": "Updated description with new details",
+  "isPublic": false,
+  "tagNames": ["italian", "pasta", "dinner"]
+}
+```
 
 **Response Body (200 OK):**
 ```json
 {
   "id": 1,
-  "title": "Updated Title",
-  "description": "Updated description",
+  "title": "Updated Recipe Title",
+  "description": "Updated description with new details",
   "ingredients": [
     {
-      "name": "Updated Ingredient",
+      "name": "Pasta",
       "unit": "cups",
       "quantity": 2.0
     }
   ],
-  "instructions": ["Updated step 1", "Updated step 2"],
+  "instructions": ["Boil water", "Cook pasta", "Serve hot"],
+  "imageUrl": "https://example.com/image.jpg",
   "isPublic": false,
   "cooked": true,
   "favourite": true,
-  "likeCount": 0,
+  "likeCount": 5,
   "authorId": 1,
-  "authorUsername": "string",
+  "authorUsername": "chef_alice",
   "originalRecipeId": null,
+  "tags": ["italian", "pasta", "dinner"],
   "createdAt": "2025-07-29T21:51:22.106186",
   "updatedAt": "2025-07-29T21:51:29.499094"
 }
@@ -869,7 +906,8 @@ GET /api/recipes/search?title=chocolate
 
 **Error Responses:**
 - **404 Not Found:** `"Recipe not found with id: 1"`
-- **400 Bad Request:** `"Validation error"` with specific field validation details
+- **401 Unauthorized:** `"User not authorized to update this recipe"` (when authorId doesn't match recipe owner)
+- **400 Bad Request:** `"Internal server error"` with validation details (rare, only for malformed data)
 
 ---
 
@@ -1060,134 +1098,15 @@ Original Recipe (ID: 1) ← originalRecipeId: null
 
 ---
 
-### 21.5. Create Recipe with Image Upload
-**POST** `/api/recipes/with-image`
+### 21.5. Recipe Image Management
 
-**Description:** Create a new recipe with image upload to S3 bucket
+**Note:** The main `POST /api/recipes` endpoint supports both creating recipes with and without images. For existing recipes, use the separate image management endpoints below.
 
-**Content-Type:** `multipart/form-data`
-
-**Request Parameters:**
-- `file` (optional): Image file (max 5MB, image types only)
-- `title` (required): Recipe title (1-255 characters)
-- `description` (optional): Recipe description (max 1000 characters)
-- `ingredients` (required): Ingredients as JSON string
-- `instructions` (required): Instructions as newline-separated string
-- `authorId` (required): Author user ID
-- `isPublic` (optional, default: true): Recipe visibility
-- `cooked` (optional, default: false): Cooked status
-- `favourite` (optional, default: false): Favourite status
-
-**Example Request (with image):**
-```
-POST /api/recipes/with-image
-Content-Type: multipart/form-data
-
-file: [image file]
-title: "Chocolate Cake"
-description: "A delicious chocolate cake recipe"
-ingredients: '[{"name":"Flour","unit":"cups","quantity":2.0},{"name":"Sugar","unit":"cups","quantity":1.5}]'
-instructions: "Mix ingredients\nBake at 350F\nLet cool"
-authorId: 1
-isPublic: true
-cooked: false
-favourite: false
-```
-
-**Example Request (without image):**
-```
-POST /api/recipes/with-image
-Content-Type: multipart/form-data
-
-title: "Chocolate Cake"
-description: "A delicious chocolate cake recipe"
-ingredients: '[{"name":"Flour","unit":"cups","quantity":2.0},{"name":"Sugar","unit":"cups","quantity":1.5}]'
-instructions: "Mix ingredients\nBake at 350F\nLet cool"
-authorId: 1
-isPublic: true
-cooked: false
-favourite: false
-```
-
-**Response Body (200 OK) - With Image:**
-```json
-{
-  "recipe": {
-    "id": 1,
-    "title": "Chocolate Cake",
-    "description": "A delicious chocolate cake recipe",
-    "ingredients": [
-      {
-        "name": "Flour",
-        "unit": "cups",
-        "quantity": 2.0
-      },
-      {
-        "name": "Sugar",
-        "unit": "cups",
-        "quantity": 1.5
-      }
-    ],
-    "instructions": ["Mix ingredients", "Bake at 350F", "Let cool"],
-    "imageUrl": "https://s3.amazonaws.com/bucket/recipe-images/uuid.jpg",
-    "isPublic": true,
-    "cooked": false,
-    "favourite": false,
-    "likeCount": 0,
-    "authorId": 1,
-    "authorUsername": "chef123",
-    "originalRecipeId": null,
-    "createdAt": "2025-07-29T21:51:22.106186",
-    "updatedAt": "2025-07-29T21:51:22.108822"
-  },
-  "imageUrl": "https://s3.amazonaws.com/bucket/recipe-images/uuid.jpg",
-  "fileName": "recipe-images/uuid.jpg",
-  "message": "Recipe created with image successfully"
-}
-```
-
-**Response Body (200 OK) - Without Image:**
-```json
-{
-  "recipe": {
-    "id": 1,
-    "title": "Chocolate Cake",
-    "description": "A delicious chocolate cake recipe",
-    "ingredients": [
-      {
-        "name": "Flour",
-        "unit": "cups",
-        "quantity": 2.0
-      },
-      {
-        "name": "Sugar",
-        "unit": "cups",
-        "quantity": 1.5
-      }
-    ],
-    "instructions": ["Mix ingredients", "Bake at 350F", "Let cool"],
-    "imageUrl": null,
-    "isPublic": true,
-    "cooked": false,
-    "favourite": false,
-    "likeCount": 0,
-    "authorId": 1,
-    "authorUsername": "chef123",
-    "originalRecipeId": null,
-    "createdAt": "2025-07-29T21:51:22.106186",
-    "updatedAt": "2025-07-29T21:51:22.108822"
-  },
-  "message": "Recipe created successfully (no image uploaded)"
-}
-```
-
-**Error Responses:**
-- **400 Bad Request:** `{"error": "File is empty"}` or `{"error": "File must be an image"}` or `{"error": "File size must be less than 5MB"}`
-- **500 Internal Server Error:** `{"error": "Failed to upload image: [error details]"}` or `{"error": "Failed to create recipe: [error details]"}`
+#### Upload Image to Existing Recipe
 
 ---
 
-### 21.6. Upload Recipe Image
+#### Upload Image to Existing Recipe
 **POST** `/api/recipes/{id}/image`
 
 **Description:** Upload an image for an existing recipe
@@ -1244,7 +1163,7 @@ file: [image file]
 
 ---
 
-### 21.7. Delete Recipe Image
+#### Delete Image from Recipe
 **DELETE** `/api/recipes/{id}/image`
 
 **Description:** Delete the image from an existing recipe
@@ -1291,7 +1210,7 @@ file: [image file]
 
 ## Recipe Book Management Endpoints (`/api/recipebooks`)
 
-### 21.8. Create Recipe Book
+### 21.6. Create Recipe Book
 **POST** `/api/recipebooks`
 
 **Request Body:**
@@ -1323,7 +1242,7 @@ file: [image file]
 
 ---
 
-### 21.9. Get All Recipe Books
+### 21.7. Get All Recipe Books
 **GET** `/api/recipebooks`
 
 **Request Body:** None
@@ -1352,7 +1271,7 @@ file: [image file]
 
 ---
 
-### 21.10. Get All Public Recipe Books
+### 21.8. Get All Public Recipe Books
 **GET** `/api/recipebooks/public`
 
 **Request Body:** None
@@ -1377,7 +1296,7 @@ file: [image file]
 
 ---
 
-### 21.11. Get Recipe Book by ID
+### 21.9. Get Recipe Book by ID
 **GET** `/api/recipebooks/{id}`
 
 **Request Body:** None
@@ -1403,7 +1322,7 @@ file: [image file]
 
 ---
 
-### 21.12. Update Recipe Book
+### 21.10. Update Recipe Book
 **PUT** `/api/recipebooks/{id}`
 
 **Request Body (Partial Update Supported):**
@@ -1441,7 +1360,7 @@ file: [image file]
 
 ---
 
-### 21.13. Delete Recipe Book
+### 21.11. Delete Recipe Book
 **DELETE** `/api/recipebooks/{id}`
 
 **Request Body:** None
@@ -1919,6 +1838,7 @@ GET /api/recipes/search?title=pasta&cuisine=Italian&difficulty=Easy&tags=Quick&m
   - **quantity:** Required, minimum 0.1
 - **instructions:** Required, at least 1 instruction
 - **imageUrl:** Optional, max 1000 characters, must be valid HTTP/HTTPS URL or S3 path
+- **tagNames:** Optional, array of tag names (strings)
 - **authorId:** Required, positive integer
 
 ### Recipe Book Validation

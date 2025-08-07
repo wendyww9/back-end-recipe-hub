@@ -44,12 +44,13 @@ public class RecipeController {
             @RequestParam("authorId") Long authorId,
             @RequestParam(value = "isPublic", required = false) Boolean isPublic,
             @RequestParam(value = "cooked", required = false) Boolean cooked,
-            @RequestParam(value = "favourite", required = false) Boolean favourite) {
+            @RequestParam(value = "favourite", required = false) Boolean favourite,
+            @RequestParam(value = "tagNames", required = false) String tagNames) {
         
         try {
             RecipeResponseDTO saved = recipeService.createRecipeFromRequest(
                 file, title, description, ingredients, instructions, 
-                authorId, isPublic, cooked, favourite);
+                authorId, isPublic, cooked, favourite, tagNames);
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create recipe: " + e.getMessage());
@@ -102,7 +103,7 @@ public class RecipeController {
     @PutMapping("/{id}")
     public ResponseEntity<RecipeResponseDTO> updateRecipe(
             @Positive @PathVariable Long id, 
-            @Valid @RequestBody RecipeRequestDTO requestDTO) {
+            @RequestBody RecipeRequestDTO requestDTO) {
         // TODO: Get actual user ID from authentication context
         Long userId = requestDTO.getAuthorId();
         RecipeResponseDTO updatedRecipe = recipeService.updateRecipeWithValidation(id, requestDTO, userId);
@@ -126,7 +127,6 @@ public class RecipeController {
         RecipeResponseDTO forkedRecipe = recipeService.forkRecipe(id, modifications, userId);
         return ResponseEntity.ok(forkedRecipe);
     }
-
 
 
     @PostMapping("/{id}/image")

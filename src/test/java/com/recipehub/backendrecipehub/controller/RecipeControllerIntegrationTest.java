@@ -1,6 +1,7 @@
 package com.recipehub.backendrecipehub.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.recipehub.backendrecipehub.dto.IngredientDTO;
 import com.recipehub.backendrecipehub.dto.RecipeRequestDTO;
 import com.recipehub.backendrecipehub.dto.UserRequestDTO;
@@ -17,15 +18,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
 @AutoConfigureWebMvc
@@ -208,5 +212,59 @@ class RecipeControllerIntegrationTest {
         mockMvc.perform(put("/api/recipes/999/likecount")
                 .param("likeCount", "5"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testCreateRecipeWithoutTagsThenAddTagsLater() throws Exception {
+        // Step 1: Create a recipe without tags
+        List<IngredientDTO> ingredients = new ArrayList<>();
+        IngredientDTO ingredient = new IngredientDTO();
+        ingredient.setName("Test Ingredient");
+        ingredient.setUnit("cup");
+        ingredient.setQuantity(1.0);
+        ingredients.add(ingredient);
+
+        List<String> instructions = new ArrayList<>();
+        instructions.add("Test instruction step 1");
+
+        // Convert to JSON strings for multipart form
+        String ingredientsJson = objectMapper.writeValueAsString(ingredients);
+        String instructionsJson = objectMapper.writeValueAsString(instructions);
+
+        MvcResult result = mockMvc.perform(post("/api/recipes")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .param("title", "Recipe Without Tags")
+                .param("description", "Test Description")
+                .param("ingredients", ingredientsJson)
+                .param("instructions", instructionsJson)
+                .param("authorId", testUser.getId().toString())
+                .param("isPublic", "true")
+                .param("cooked", "false")
+                .param("favourite", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tags").isArray())
+                .andExpect(jsonPath("$.tags").isEmpty())
+                .andReturn();
+
+        // Extract the created recipe ID
+        String responseContent = result.getResponse().getContentAsString();
+        JsonNode responseJson = objectMapper.readTree(responseContent);
+        Long recipeId = responseJson.get("id").asLong();
+
+        // Step 2: Update the recipe to add tags
+        RecipeRequestDTO updateRequest = new RecipeRequestDTO();
+        updateRequest.setTitle("Recipe Without Tags"); // Keep the same title
+        updateRequest.setDescription("Test Description"); // Keep the same description
+        updateRequest.setIngredients(ingredients); // Keep the same ingredients
+        updateRequest.setInstructions(instructions); // Keep the same instructions
+        updateRequest.setTagNames(Arrays.asList("Italian", "Quick", "Easy"));
+        updateRequest.setAuthorId(testUser.getId());
+
+        mockMvc.perform(put("/api/recipes/" + recipeId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tags").isArray())
+                .andExpect(jsonPath("$.tags").value(org.hamcrest.Matchers.hasItems("Italian", "Quick", "Easy")));
     }
 } 

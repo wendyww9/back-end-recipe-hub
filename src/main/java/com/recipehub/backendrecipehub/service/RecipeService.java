@@ -31,6 +31,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @Service
 @ConditionalOnBean(S3Service.class)
@@ -172,14 +173,14 @@ public class RecipeService {
 
         // Check if user is authorized to update this recipe
         if (!existingRecipe.getAuthor().getId().equals(userId)) {
-            throw new RecipeNotFoundException("User not authorized to update this recipe");
+            throw new UnauthorizedException("User not authorized to update this recipe");
         }
 
-        // Update basic fields using the mapper
+        // Update basic fields using the mapper (only non-null fields)
         RecipeMapper.updateEntity(requestDTO, existingRecipe);
         existingRecipe.setUpdatedAt(LocalDateTime.now());
 
-        // Handle tags
+        // Handle tags - if tagNames is provided, replace all existing tags
         if (requestDTO.getTagNames() != null) {
             List<Tag> tags = requestDTO.getTagNames().stream()
                     .map(tagName -> {
@@ -369,7 +370,8 @@ public class RecipeService {
             Long authorId,
             Boolean isPublic,
             Boolean cooked,
-            Boolean favourite
+            Boolean favourite,
+            String tagNamesJson
     ) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
 
@@ -383,6 +385,20 @@ public class RecipeService {
                 mapper.getTypeFactory().constructCollectionType(List.class, String.class)
         );
 
+        // Parse tagNames if provided
+        List<String> tagNames = null;
+        if (tagNamesJson != null && !tagNamesJson.trim().isEmpty()) {
+            try {
+                tagNames = mapper.readValue(
+                        tagNamesJson,
+                        mapper.getTypeFactory().constructCollectionType(List.class, String.class)
+                );
+            } catch (Exception e) {
+                // If parsing fails, ignore tagNames
+                tagNames = null;
+            }
+        }
+
         // Create DTO
         RecipeRequestDTO requestDTO = new RecipeRequestDTO();
         requestDTO.setTitle(title);
@@ -393,6 +409,7 @@ public class RecipeService {
         requestDTO.setIsPublic(isPublic != null ? isPublic : false);
         requestDTO.setCooked(cooked != null ? cooked : false);
         requestDTO.setFavourite(favourite != null ? favourite : false);
+        requestDTO.setTagNames(tagNames);
 
         if (file != null && !file.isEmpty()) {
             validateImageFile(file);
@@ -409,14 +426,40 @@ public class RecipeService {
     public RecipeResponseDTO uploadRecipeImage(Long recipeId, MultipartFile file, Long userId) throws IOException {
         validateImageFile(file);
         
-        String fileName = s3Service.uploadImage(file);
-        String imageUrl = s3Service.getImageUrl(fileName);
+        // Get the current recipe to check if it has an existing image
+        RecipeResponseDTO currentRecipe = getRecipeById(recipeId)
+                .orElseThrow(() -> new RecipeNotFoundException(recipeId));
+        
+        String oldImageUrl = currentRecipe.getImageUrl();
+        String oldFileName = null;
+        
+        // Extract old file name if image exists
+        if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
+            oldFileName = extractFileNameFromUrl(oldImageUrl);
+        }
+        
+        // Upload new image
+        String newFileName = s3Service.uploadImage(file);
+        String newImageUrl = s3Service.getImageUrl(newFileName);
 
         // Update recipe with new image URL
         RecipeRequestDTO updateRequest = new RecipeRequestDTO();
-        updateRequest.setImageUrl(imageUrl);
+        updateRequest.setImageUrl(newImageUrl);
 
-        return updateRecipeWithValidation(recipeId, updateRequest, userId);
+        RecipeResponseDTO updatedRecipe = updateRecipeWithValidation(recipeId, updateRequest, userId);
+        
+        // Delete old image from S3 if it exists
+        if (oldFileName != null) {
+            try {
+                s3Service.deleteImage(oldFileName);
+            } catch (Exception e) {
+                // Log the error but don't fail the upload
+                // The new image was successfully uploaded and recipe was updated
+                System.err.println("Failed to delete old image: " + oldFileName + " - " + e.getMessage());
+            }
+        }
+        
+        return updatedRecipe;
     }
 
     public RecipeResponseDTO deleteRecipeImage(Long recipeId, Long userId) {

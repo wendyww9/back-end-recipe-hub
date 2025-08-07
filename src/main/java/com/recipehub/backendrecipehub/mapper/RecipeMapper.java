@@ -2,6 +2,7 @@ package com.recipehub.backendrecipehub.mapper;
 
 import com.recipehub.backendrecipehub.dto.*;
 import com.recipehub.backendrecipehub.model.*;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 public class RecipeMapper {
@@ -39,10 +40,12 @@ public class RecipeMapper {
         dto.setUpdatedAt(recipe.getUpdatedAt());
         
         // Map tags
-        if (recipe.getTags() != null) {
+        if (recipe.getTags() != null && !recipe.getTags().isEmpty()) {
             dto.setTags(recipe.getTags().stream()
                     .map(Tag::getName)
                     .collect(Collectors.toList()));
+        } else {
+            dto.setTags(new ArrayList<>());
         }
         
         return dto;

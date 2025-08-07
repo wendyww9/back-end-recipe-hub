@@ -225,20 +225,22 @@ class TagControllerIntegrationTest {
         List<String> instructions = new ArrayList<>();
         instructions.add("Test instruction step 1");
 
-        RecipeRequestDTO recipeRequest = new RecipeRequestDTO();
-        recipeRequest.setTitle("Test Recipe with Tags");
-        recipeRequest.setDescription("Test Description");
-        recipeRequest.setAuthorId(testUser.getId());
-        recipeRequest.setIsPublic(true);
-        recipeRequest.setCooked(false);
-        recipeRequest.setFavourite(false);
-        recipeRequest.setIngredients(ingredients);
-        recipeRequest.setInstructions(instructions);
-        recipeRequest.setTagNames(Arrays.asList("Italian", "Quick", "Easy"));
+        // Convert to JSON strings for multipart form
+        String ingredientsJson = objectMapper.writeValueAsString(ingredients);
+        String instructionsJson = objectMapper.writeValueAsString(instructions);
+        String tagNamesJson = objectMapper.writeValueAsString(Arrays.asList("Italian", "Quick", "Easy"));
 
         mockMvc.perform(post("/api/recipes")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(recipeRequest)))
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .param("title", "Test Recipe with Tags")
+                .param("description", "Test Description")
+                .param("ingredients", ingredientsJson)
+                .param("instructions", instructionsJson)
+                .param("authorId", testUser.getId().toString())
+                .param("isPublic", "true")
+                .param("cooked", "false")
+                .param("favourite", "false")
+                .param("tagNames", tagNamesJson))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tags").isArray())
                 .andExpect(jsonPath("$.tags").value(org.hamcrest.Matchers.hasItems("Italian", "Quick", "Easy")));
