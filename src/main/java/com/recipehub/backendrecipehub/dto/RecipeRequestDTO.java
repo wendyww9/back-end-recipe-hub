@@ -44,6 +44,10 @@ public class RecipeRequestDTO {
     
     private List<String> tagNames;
     
+    // New fields for granular tag management
+    private List<String> tagsToAdd;
+    private List<String> tagsToDelete;
+    
     // Explicit getter and setter for isPublic to avoid Lombok naming conflicts
     public Boolean getIsPublic() {
         return isPublic;

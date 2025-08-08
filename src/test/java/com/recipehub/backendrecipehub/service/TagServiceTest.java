@@ -175,7 +175,7 @@ class TagServiceTest {
         List<Tag> tags = new ArrayList<>();
         
         for (String name : tagNames) {
-            Optional<Tag> tag = tagRepository.findByName(name);
+            Optional<Tag> tag = tagRepository.findByNameIgnoreCase(name);
             tag.ifPresent(tags::add);
         }
         
@@ -187,7 +187,7 @@ class TagServiceTest {
 
     private void createRecipeWithTag(String tagName) {
         // Create tag if it doesn't exist
-        Tag tag = tagRepository.findByName(tagName).orElseGet(() -> {
+        Tag tag = tagRepository.findByNameIgnoreCase(tagName).orElseGet(() -> {
             Tag newTag = new Tag();
             newTag.setName(tagName);
             return tagRepository.save(newTag);

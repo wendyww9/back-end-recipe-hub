@@ -15,5 +15,6 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
     @Query("SELECT new com.recipehub.backendrecipehub.dto.TagDTO(t.id, t.name, SIZE(t.recipes)) FROM Tag t")
     List<TagDTO> findAllWithRecipeCount();
 
-    Optional<Tag> findByName(String name);
+    Optional<Tag> findByNameIgnoreCase(String name);
+
 }

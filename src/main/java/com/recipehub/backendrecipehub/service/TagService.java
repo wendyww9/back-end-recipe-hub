@@ -1,6 +1,7 @@
 package com.recipehub.backendrecipehub.service;
 
 import com.recipehub.backendrecipehub.dto.TagDTO;
+import com.recipehub.backendrecipehub.exception.ValidationException;
 import com.recipehub.backendrecipehub.model.Tag;
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
 import com.recipehub.backendrecipehub.repository.TagRepository;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,8 +35,36 @@ public class TagService {
     }
 
     public Tag getTagByName(String name) {
-        return tagRepository.findByName(name)
+        return tagRepository.findByNameIgnoreCase(name)
                 .orElseThrow(() -> new RuntimeException("Tag not found: " + name));
+    }
+
+    public List<Tag> resolveTagsByName(List<String> tagNames) {
+        if (tagNames == null || tagNames.isEmpty()) {
+            return new ArrayList<>();
+        }
+    
+        // ✅ Validate no duplicates (case-insensitive)
+        Set<String> normalizedSet = new HashSet<>();
+        for (String name : tagNames) {
+            String normalized = name.trim().toLowerCase();
+            if (!normalizedSet.add(normalized)) {
+                throw new ValidationException("Duplicate tag name: " + name);
+            }
+        }
+    
+        // ✅ Lookup existing tags by name (case-insensitive)
+        List<Tag> resolvedTags = new ArrayList<>();
+        for (String tagName : tagNames) {
+            // Use a custom query to handle case-insensitive search and get first result
+            List<Tag> matchingTags = tagRepository.findByNameIgnoreCaseList(tagName);
+            if (matchingTags.isEmpty()) {
+                throw new ValidationException("Unknown tag: " + tagName);
+            }
+            resolvedTags.add(matchingTags.get(0)); // Take the first match
+        }
+    
+        return resolvedTags;
     }
 
     public void initializePredefinedTags() {

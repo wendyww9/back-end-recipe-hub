@@ -248,7 +248,7 @@ class TagControllerIntegrationTest {
 
     private void createRecipeWithTag(String tagName) {
         // Create tag if it doesn't exist
-        Tag tag = tagRepository.findByName(tagName).orElseGet(() -> {
+        Tag tag = tagRepository.findByNameIgnoreCase(tagName).orElseGet(() -> {
             Tag newTag = new Tag();
             newTag.setName(tagName);
             return tagRepository.save(newTag);

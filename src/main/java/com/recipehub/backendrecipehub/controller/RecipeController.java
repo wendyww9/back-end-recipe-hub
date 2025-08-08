@@ -105,8 +105,8 @@ public class RecipeController {
             @Positive @PathVariable Long id, 
             @RequestBody RecipeRequestDTO requestDTO) {
         // TODO: Get actual user ID from authentication context
-        Long userId = requestDTO.getAuthorId();
-        RecipeResponseDTO updatedRecipe = recipeService.updateRecipeWithValidation(id, requestDTO, userId);
+        // Long userId = requestDTO.getAuthorId();
+        RecipeResponseDTO updatedRecipe = recipeService.updateRecipeWithValidation(id, requestDTO);
         return ResponseEntity.ok(updatedRecipe);
     }
 
@@ -121,9 +121,9 @@ public class RecipeController {
     public ResponseEntity<RecipeResponseDTO> forkRecipe(
         @Positive @PathVariable Long id,
         @RequestBody(required = false) RecipeRequestDTO modifications) {
-        // TODO: Get actual user ID from authentication context
-        // For now, we'll use a default user ID of 1
-        Long userId = 1L;
+        // Use authorId from request body to set the new author
+        Long userId = modifications != null && modifications.getAuthorId() != null ? 
+                modifications.getAuthorId() : 1L; // Fallback to 1 if not provided
         RecipeResponseDTO forkedRecipe = recipeService.forkRecipe(id, modifications, userId);
         return ResponseEntity.ok(forkedRecipe);
     }

@@ -18,6 +18,7 @@ import com.recipehub.backendrecipehub.repository.TagRepository;
 import com.recipehub.backendrecipehub.repository.UserRepository;
 import com.recipehub.backendrecipehub.specification.RecipeSpecification;
 import com.recipehub.backendrecipehub.service.S3Service;
+import com.recipehub.backendrecipehub.service.TagService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.jpa.domain.Specification;
@@ -42,15 +43,17 @@ public class RecipeService {
     private final TagRepository tagRepository;
     private final RecipeBookRepository recipeBookRepository;
     private final S3Service s3Service;
+    private final TagService tagService;
 
     @Autowired
     public RecipeService(RecipeRepository recipeRepository, UserRepository userRepository, 
-                       TagRepository tagRepository, RecipeBookRepository recipeBookRepository, S3Service s3Service) {
+                       TagRepository tagRepository, RecipeBookRepository recipeBookRepository, S3Service s3Service, TagService tagService) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
         this.tagRepository = tagRepository;
         this.recipeBookRepository = recipeBookRepository;
         this.s3Service = s3Service;
+        this.tagService = tagService;
     }
 
     public RecipeResponseDTO createRecipe(RecipeRequestDTO dto, User user, Recipe originalRecipe) {
@@ -61,7 +64,7 @@ public class RecipeService {
         // Handle tags if provided
         if (dto.getTagNames() != null && !dto.getTagNames().isEmpty()) {
             List<Tag> tags = dto.getTagNames().stream()
-                    .map(tagName -> tagRepository.findByName(tagName)
+                    .map(tagName -> tagRepository.findByNameIgnoreCase(tagName)
                             .orElseGet(() -> {
                                 Tag newTag = new Tag();
                                 newTag.setName(tagName);
@@ -96,7 +99,7 @@ public class RecipeService {
         if (requestDTO.getTagNames() != null && !requestDTO.getTagNames().isEmpty()) {
             List<Tag> tags = requestDTO.getTagNames().stream()
                     .map(tagName -> {
-                        Optional<Tag> existingTag = tagRepository.findByName(tagName);
+                        Optional<Tag> existingTag = tagRepository.findByNameIgnoreCase(tagName);
                         if (existingTag.isPresent()) {
                             return existingTag.get();
                         } else {
@@ -135,21 +138,21 @@ public class RecipeService {
                 .map(RecipeMapper::toDTO);
     }
 
-    public RecipeResponseDTO updateRecipe(Long id, RecipeRequestDTO dto, Long userId) {
+    public RecipeResponseDTO updateRecipe(Long id, RecipeRequestDTO dto) {
         Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
         
-        // Check if the user is the owner of the recipe
-        if (!recipe.getAuthor().getId().equals(userId)) {
-            throw new UnauthorizedException("Only the recipe owner can update this recipe");
-        }
+        // // Check if the user is the owner of the recipe
+        // if (!recipe.getAuthor().getId().equals(userId)) {
+        //     throw new UnauthorizedException("Only the recipe owner can update this recipe");
+        // }
         
         RecipeMapper.updateEntity(dto, recipe);
         
         // Update tags if provided
         if (dto.getTagNames() != null) {
             List<Tag> tags = dto.getTagNames().stream()
-                    .map(tagName -> tagRepository.findByName(tagName)
+                    .map(tagName -> tagRepository.findByNameIgnoreCase(tagName)
                             .orElseGet(() -> {
                                 Tag newTag = new Tag();
                                 newTag.setName(tagName);
@@ -167,34 +170,48 @@ public class RecipeService {
     }
 
     @Transactional
-    public RecipeResponseDTO updateRecipeWithValidation(Long id, RecipeRequestDTO requestDTO, Long userId) {
+    public RecipeResponseDTO updateRecipeWithValidation(Long id, RecipeRequestDTO requestDTO) {
         Recipe existingRecipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
 
-        // Check if user is authorized to update this recipe
-        if (!existingRecipe.getAuthor().getId().equals(userId)) {
-            throw new UnauthorizedException("User not authorized to update this recipe");
-        }
+        // // Check if user is authorized to update this recipe
+        // if (!existingRecipe.getAuthor().getId().equals(userId)) {
+        //     throw new UnauthorizedException("User not authorized to update this recipe");
+        // }
 
         // Update basic fields using the mapper (only non-null fields)
         RecipeMapper.updateEntity(requestDTO, existingRecipe);
         existingRecipe.setUpdatedAt(LocalDateTime.now());
 
-        // Handle tags - if tagNames is provided, replace all existing tags
+        // Handle tags with granular control
         if (requestDTO.getTagNames() != null) {
-            List<Tag> tags = requestDTO.getTagNames().stream()
-                    .map(tagName -> {
-                        Optional<Tag> existingTag = tagRepository.findByName(tagName);
-                        if (existingTag.isPresent()) {
-                            return existingTag.get();
-                        } else {
-                            Tag newTag = new Tag();
-                            newTag.setName(tagName);
-                            return tagRepository.save(newTag);
-                        }
-                    })
-                    .collect(Collectors.toList());
+            // Legacy behavior: replace all tags
+            List<Tag> tags = tagService.resolveTagsByName(requestDTO.getTagNames());
             existingRecipe.setTags(tags);
+        } else {
+            // New granular tag management
+            List<Tag> currentTags = new ArrayList<>(existingRecipe.getTags());
+            
+            // Add new tags
+            if (requestDTO.getTagsToAdd() != null && !requestDTO.getTagsToAdd().isEmpty()) {
+                List<Tag> tagsToAdd = tagService.resolveTagsByName(requestDTO.getTagsToAdd());
+                for (Tag tag : tagsToAdd) {
+                    // Check if tag already exists by name (case-insensitive)
+                    boolean tagExists = currentTags.stream()
+                        .anyMatch(t -> t.getName().equalsIgnoreCase(tag.getName()));
+                    if (!tagExists) {
+                        currentTags.add(tag);
+                    }
+                }
+            }
+            
+            // Remove tags
+            if (requestDTO.getTagsToDelete() != null && !requestDTO.getTagsToDelete().isEmpty()) {
+                List<Tag> tagsToDelete = tagService.resolveTagsByName(requestDTO.getTagsToDelete());
+                currentTags.removeIf(tag -> tagsToDelete.stream().anyMatch(t -> t.getId().equals(tag.getId())));
+            }
+            
+            existingRecipe.setTags(currentTags);
         }
 
         Recipe updatedRecipe = recipeRepository.save(existingRecipe);
@@ -239,15 +256,30 @@ public class RecipeService {
         forkedRecipe.setCreatedAt(LocalDateTime.now());
         forkedRecipe.setUpdatedAt(LocalDateTime.now());
 
-        // Copy tags from original recipe
-        if (originalRecipe.getTags() != null) {
-            forkedRecipe.setTags(originalRecipe.getTags());
+        // === Handle tags BEFORE saving ===
+        List<Tag> tagsToAssign;
+
+        if (modifications != null && modifications.getTagNames() != null && !modifications.getTagNames().isEmpty()) {
+            // Use provided tags (validated)
+            tagsToAssign = tagService.resolveTagsByName(modifications.getTagNames());
+        } else if (originalRecipe.getTags() != null && !originalRecipe.getTags().isEmpty()) {
+            // Deep copy of managed tags
+            tagsToAssign = originalRecipe.getTags().stream()
+                    .map(tag -> tagRepository.findById(tag.getId())
+                            .orElseThrow(() -> new ValidationException("Original tag not found: " + tag.getName())))
+                    .collect(Collectors.toList());
+        } else {
+            tagsToAssign = new ArrayList<>();
         }
 
+        // Always assign a fresh list
+        forkedRecipe.setTags(new ArrayList<>(tagsToAssign));
+
+        // === THEN save the recipe ===
         Recipe savedForkedRecipe = recipeRepository.save(forkedRecipe);
         return RecipeMapper.toDTO(savedForkedRecipe);
     }
-
+    
     @Transactional(readOnly = true)
     public List<RecipeResponseDTO> getRecipesByUserId(Long userId) {
         List<Recipe> recipes = recipeRepository.findByAuthorId(userId);
@@ -255,6 +287,7 @@ public class RecipeService {
                 .map(RecipeMapper::toDTO)
                 .collect(Collectors.toList());
     }
+    
 
     @Transactional(readOnly = true)
     public List<RecipeResponseDTO> searchByTitle(String title) {
@@ -446,7 +479,7 @@ public class RecipeService {
         RecipeRequestDTO updateRequest = new RecipeRequestDTO();
         updateRequest.setImageUrl(newImageUrl);
 
-        RecipeResponseDTO updatedRecipe = updateRecipeWithValidation(recipeId, updateRequest, userId);
+        RecipeResponseDTO updatedRecipe = updateRecipeWithValidation(recipeId, updateRequest);
         
         // Delete old image from S3 if it exists
         if (oldFileName != null) {
@@ -485,7 +518,7 @@ public class RecipeService {
         RecipeRequestDTO updateRequest = new RecipeRequestDTO();
         updateRequest.setImageUrl(""); // Set to empty string to remove image
 
-        return updateRecipeWithValidation(recipeId, updateRequest, userId);
+        return updateRecipeWithValidation(recipeId, updateRequest);
     }
 
     private void validateImageFile(MultipartFile file) {

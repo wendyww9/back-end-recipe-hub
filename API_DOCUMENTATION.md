@@ -826,7 +826,7 @@ GET /api/recipes/search?title=chocolate
 ### 19. Update Recipe
 **PUT** `/api/recipes/{id}`
 
-**Authorization:** Only the recipe owner (author) can update the recipe.
+**Authorization:** Frontend-controlled authorization (no backend validation)
 
 **Request Body (Partial Update Supported):**
 ```json
@@ -847,21 +847,52 @@ GET /api/recipes/search?title=chocolate
   "cooked": false,
   "favourite": false,
   "likeCount": 0,
-  "tagNames": ["string"] (optional, replaces all existing tags)
+  "tagNames": ["string"] (optional, replaces all existing tags),
+  "tagsToAdd": ["string"] (optional, adds tags without affecting existing ones),
+  "tagsToDelete": ["string"] (optional, removes specific tags)
 }
 ```
 
 **Key Features:**
 - **Partial Updates:** Only provided fields are updated; existing data is preserved for omitted fields
-- **Authorization Required:** `authorId` must match the recipe owner
-- **Tag Management:** If `tagNames` is provided, it replaces all existing tags; if omitted, existing tags are preserved
-- **No Validation Requirements:** Only `authorId` is required for authorization
+- **Frontend Authorization:** Authorization is controlled by the frontend
+- **Granular Tag Management:** Three ways to manage tags:
+  - `tagNames`: Replaces all existing tags (legacy behavior)
+  - `tagsToAdd`: Adds new tags without affecting existing ones
+  - `tagsToDelete`: Removes specific tags
+- **Duplicate Prevention:** Tags are checked case-insensitively to prevent duplicates
+- **Tag Validation:** Only predefined tags are accepted
+
+**Example Request - Replace All Tags (Legacy):**
+```json
+{
+  "authorId": 2,
+  "tagNames": ["dinner", "quick", "healthy"]
+}
+```
 
 **Example Request - Add Tags Only:**
 ```json
 {
   "authorId": 2,
-  "tagNames": ["dinner", "quick", "healthy"]
+  "tagsToAdd": ["dinner", "quick"]
+}
+```
+
+**Example Request - Remove Tags Only:**
+```json
+{
+  "authorId": 2,
+  "tagsToDelete": ["quick"]
+}
+```
+
+**Example Request - Add and Remove Tags:**
+```json
+{
+  "authorId": 2,
+  "tagsToAdd": ["healthy", "easy"],
+  "tagsToDelete": ["quick"]
 }
 ```
 
@@ -872,7 +903,7 @@ GET /api/recipes/search?title=chocolate
   "title": "Updated Recipe Title",
   "description": "Updated description with new details",
   "isPublic": false,
-  "tagNames": ["italian", "pasta", "dinner"]
+  "tagsToAdd": ["italian", "pasta"]
 }
 ```
 
@@ -906,8 +937,8 @@ GET /api/recipes/search?title=chocolate
 
 **Error Responses:**
 - **404 Not Found:** `"Recipe not found with id: 1"`
-- **401 Unauthorized:** `"User not authorized to update this recipe"` (when authorId doesn't match recipe owner)
-- **400 Bad Request:** `"Internal server error"` with validation details (rare, only for malformed data)
+- **400 Bad Request:** `"Unknown tag: InvalidTag"` (when using invalid tag names)
+- **500 Internal Server Error:** `"Query did not return a unique result"` (database issue with duplicate tags)
 
 ---
 
@@ -968,11 +999,12 @@ PUT /api/recipes/1/likecount?likeCount=15
 ### 21.1. Fork Recipe
 **POST** `/api/recipes/{id}/fork`
 
-**Description:** Creates a copy of an existing recipe with optional modifications. Similar to GitHub's fork functionality.
+**Description:** Creates a copy of an existing recipe with optional modifications. The forked recipe is automatically assigned to the user performing the fork operation. Similar to GitHub's fork functionality.
 
 **Request Body (Optional - for modifications):**
 ```json
 {
+  "authorId": "number (optional, defaults to 1)",
   "title": "string (optional, 1-255 characters)",
   "description": "string (optional, max 1000 characters)",
   "ingredients": [
@@ -985,27 +1017,55 @@ PUT /api/recipes/1/likecount?likeCount=15
   "instructions": ["string"] (optional, at least 1 instruction if provided),
   "isPublic": true,
   "cooked": false,
-  "favourite": false
+  "favourite": false,
+  "tagNames": ["string"] (optional, list of tag names to assign)
 }
 ```
-*Note: All fields are optional. If not provided, the forked recipe will be an exact copy of the original.*
+*Note: All fields are optional. If not provided, the forked recipe will be an exact copy of the original with the current user as the author.*
 
 **Example Requests:**
 
-**Fork without modifications:**
-```
-POST /api/recipes/1/fork
-Content-Type: application/json
-
-{}
-```
-
-**Fork with modifications:**
+**Minimal fork (assigns to current user):**
 ```
 POST /api/recipes/1/fork
 Content-Type: application/json
 
 {
+  "authorId": 2
+}
+```
+
+**Fork with custom author assignment:**
+```
+POST /api/recipes/1/fork
+Content-Type: application/json
+
+{
+  "authorId": 2,
+  "title": "My Modified Version",
+  "description": "A personalized version of the original recipe"
+}
+```
+
+**Fork with custom tags:**
+```
+POST /api/recipes/1/fork
+Content-Type: application/json
+
+{
+  "authorId": 2,
+  "title": "My Carbonara",
+  "tagNames": ["dinner", "italian", "pasta"]
+}
+```
+
+**Fork with full modifications:**
+```
+POST /api/recipes/1/fork
+Content-Type: application/json
+
+{
+  "authorId": 2,
   "title": "My Modified Version",
   "description": "A personalized version of the original recipe",
   "ingredients": [
@@ -1032,47 +1092,45 @@ Content-Type: application/json
   ],
   "isPublic": false,
   "cooked": true,
-  "favourite": true
+  "favourite": true,
+  "tagNames": ["dessert", "baking", "chocolate"]
 }
 ```
 
 **Response Body (200 OK):**
 ```json
 {
-  "id": 2,
-  "title": "My Modified Version",
-  "description": "A personalized version of the original recipe",
+  "id": 27,
+  "title": "Spaghetti Carbonara (Forked)",
+  "description": "A classic Italian pasta dish",
   "ingredients": [
     {
-      "name": "Flour",
-      "unit": "cups",
-      "quantity": 3.0
-    },
-    {
-      "name": "Sugar",
-      "unit": "cups",
-      "quantity": 1.5
-    },
-    {
-      "name": "Vanilla",
-      "unit": "tsp",
+      "name": "Pasta",
+      "unit": "pounds",
       "quantity": 1.0
+    },
+    {
+      "name": "Eggs",
+      "unit": "pieces",
+      "quantity": 4.0
     }
   ],
   "instructions": [
-    "Mix flour and sugar",
-    "Add vanilla extract", 
-    "Bake at 375F for 25 minutes"
+    "Boil pasta",
+    "Cook bacon",
+    "Mix with eggs"
   ],
-  "isPublic": false,
-  "cooked": true,
-  "favourite": true,
+  "imageUrl": null,
+  "isPublic": true,
+  "cooked": false,
+  "favourite": false,
   "likeCount": 0,
-  "authorId": 1,
-  "authorUsername": "testuser",
-  "originalRecipeId": 1,
-  "createdAt": "2025-07-30T09:13:23.133444",
-  "updatedAt": "2025-07-30T09:13:23.136118"
+  "authorId": 2,
+  "authorUsername": "bob_smith",
+  "originalRecipeId": 4,
+  "tags": ["Mexican", "Dinner", "Quick", "Crowd-Pleaser"],
+  "createdAt": "2025-08-08T11:21:22.259503",
+  "updatedAt": "2025-08-08T11:21:22.24911"
 }
 ```
 
@@ -1081,11 +1139,13 @@ Content-Type: application/json
 - **404 Not Found:** `"Recipe not found with id: 1"`
 
 **Key Features:**
+- **Author Assignment:** Automatically assigns the forked recipe to the user performing the fork (via `authorId`)
 - **Content Copying:** Copies all content from the recipe being forked (like GitHub)
 - **Optional Modifications:** Can apply changes during forking process
+- **Tag Management:** Can assign custom tags or inherit original tags
 - **Original Recipe Tracking:** `originalRecipeId` always points to the root original recipe
 - **Like Count Reset:** New forks start with `likeCount: 0`
-- **User Assignment:** Forked recipe is assigned to the user performing the fork
+- **Recipe List Integration:** Forked recipes appear in the new author's recipe list
 - **Fork Chain Support:** Can fork any recipe in a chain, always pointing back to the original
 
 **Fork Chain Example:**
