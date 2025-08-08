@@ -1588,32 +1588,12 @@ GET /api/tags/popular?limit=5
 
 ---
 
-### 31. Initialize Predefined Tags
-**POST** `/api/tags/initialize`
+### 31. Tag Initialization
+There is no API to create or initialize tags. Tags are predefined and managed outside of the application. Endpoints accept only existing tag names; unknown tags result in a 400 error.
 
-**Request Body:** None
-
-**Response Body (200 OK):**
-```json
-"Predefined tags initialized successfully"
-```
-
-**Key Features:**
-- **One-Time Setup:** Populates database with 80+ predefined tags
-- **Categories Included:** Cuisine types, meal types, dietary restrictions, cooking methods, difficulty levels, occasions, seasons, health categories, ingredient types, and special features
-- **Safe Operation:** Won't duplicate tags if already initialized
-
-**Tag Categories:**
-- **Cuisine Types:** Italian, Mexican, Asian, French, Indian, Mediterranean, American, Thai, Japanese, Chinese
-- **Meal Types:** Breakfast, Lunch, Dinner, Dessert, Appetizer, Snack, Brunch, Late Night
-- **Dietary:** Vegetarian, Vegan, Gluten-Free, Dairy-Free, Low-Carb, Keto, Paleo, Halal, Kosher
-- **Cooking Methods:** Baked, Grilled, Fried, Steamed, Roasted, Slow Cooker, Instant Pot, Air Fryer, Smoked
-- **Difficulty:** Easy, Medium, Hard, Beginner, Advanced, Quick, 30-Minute Meals
-- **Occasions:** Holiday, Birthday, Anniversary, Party, Date Night, Family Dinner, Potluck, Picnic
-- **Seasons:** Spring, Summer, Fall, Winter, Seasonal
-- **Health:** Healthy, Low-Calorie, High-Protein, Low-Sodium, Heart-Healthy, Anti-Inflammatory
-- **Ingredients:** Chicken, Beef, Pork, Fish, Seafood, Pasta, Rice, Vegetables, Fruits, Nuts, Cheese
-- **Special Features:** One-Pot, Make-Ahead, Freezer-Friendly, Kid-Friendly, Crowd-Pleaser, Comfort Food, Gourmet
+Notes:
+- Use `/api/tags`, `/api/tags/popular`, and `/api/tags/categories` to discover available tags.
+- When updating recipes, duplicate tag names in the request (case-insensitive) are rejected with 400.
 
 ---
 

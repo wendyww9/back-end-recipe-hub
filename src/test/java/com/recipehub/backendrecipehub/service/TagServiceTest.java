@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
+@org.springframework.context.annotation.Import(com.recipehub.backendrecipehub.config.TestConfig.class)
 class TagServiceTest {
 
     @Autowired
@@ -99,27 +100,7 @@ class TagServiceTest {
         });
     }
 
-    @Test
-    void testInitializePredefinedTags() {
-        // Clear existing tags first
-        tagRepository.deleteAll();
-        
-        tagService.initializePredefinedTags();
-        
-        List<Tag> tags = tagRepository.findAll();
-        assertFalse(tags.isEmpty());
-        assertTrue(tags.size() >= 80); // Should have at least 80 predefined tags
-    }
-
-    @Test
-    void testInitializePredefinedTagsAlreadyExists() {
-        // Tags already exist from setUp()
-        tagService.initializePredefinedTags();
-        
-        // Should not throw exception and should not add duplicate tags
-        List<Tag> tags = tagRepository.findAll();
-        assertFalse(tags.isEmpty());
-    }
+    // Removed initializePredefinedTags tests; tags are seeded via src/test/resources/data.sql
 
     @Test
     void testGetPopularTags() {

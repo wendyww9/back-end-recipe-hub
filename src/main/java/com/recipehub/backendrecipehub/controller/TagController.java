@@ -43,15 +43,7 @@ public class TagController {
         }
     }
 
-    @PostMapping("/initialize")
-    public ResponseEntity<String> initializePredefinedTags() {
-        try {
-            tagService.initializePredefinedTags();
-            return ResponseEntity.ok("Predefined tags initialized successfully");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error initializing tags: " + e.getMessage());
-        }
-    }
+    // Removed /initialize endpoint; tags are managed externally and seeded in tests
 
     @GetMapping("/popular")
     public ResponseEntity<List<TagDTO>> getPopularTags(@RequestParam(defaultValue = "10") int limit) {

@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 import java.util.ArrayList;
 
 @Service
-@ConditionalOnBean(S3Service.class)
 public class RecipeService {
 
     private final RecipeRepository recipeRepository;
@@ -63,14 +62,7 @@ public class RecipeService {
         
         // Handle tags if provided
         if (dto.getTagNames() != null && !dto.getTagNames().isEmpty()) {
-            List<Tag> tags = dto.getTagNames().stream()
-                    .map(tagName -> tagRepository.findByNameIgnoreCase(tagName)
-                            .orElseGet(() -> {
-                                Tag newTag = new Tag();
-                                newTag.setName(tagName);
-                                return tagRepository.save(newTag);
-                            }))
-                    .collect(Collectors.toList());
+            List<Tag> tags = tagService.resolveTagsByName(dto.getTagNames());
             entity.setTags(tags);
         }
         
@@ -97,18 +89,7 @@ public class RecipeService {
 
         // Handle tags
         if (requestDTO.getTagNames() != null && !requestDTO.getTagNames().isEmpty()) {
-            List<Tag> tags = requestDTO.getTagNames().stream()
-                    .map(tagName -> {
-                        Optional<Tag> existingTag = tagRepository.findByNameIgnoreCase(tagName);
-                        if (existingTag.isPresent()) {
-                            return existingTag.get();
-                        } else {
-                            Tag newTag = new Tag();
-                            newTag.setName(tagName);
-                            return tagRepository.save(newTag);
-                        }
-                    })
-                    .collect(Collectors.toList());
+            List<Tag> tags = tagService.resolveTagsByName(requestDTO.getTagNames());
             recipe.setTags(tags);
         }
 
@@ -151,14 +132,7 @@ public class RecipeService {
         
         // Update tags if provided
         if (dto.getTagNames() != null) {
-            List<Tag> tags = dto.getTagNames().stream()
-                    .map(tagName -> tagRepository.findByNameIgnoreCase(tagName)
-                            .orElseGet(() -> {
-                                Tag newTag = new Tag();
-                                newTag.setName(tagName);
-                                return tagRepository.save(newTag);
-                            }))
-                    .collect(Collectors.toList());
+            List<Tag> tags = tagService.resolveTagsByName(dto.getTagNames());
             recipe.setTags(tags);
         }
         

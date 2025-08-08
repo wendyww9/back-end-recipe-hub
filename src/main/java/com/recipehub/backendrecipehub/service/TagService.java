@@ -64,51 +64,7 @@ public class TagService {
         return resolvedTags;
     }
 
-    public void initializePredefinedTags() {
-        // Check if tags already exist
-        if (!tagRepository.findAll().isEmpty()) {
-            return; // Tags already initialized
-        }
-
-        // Predefined tags organized by categories
-        List<String> predefinedTags = Arrays.asList(
-            // Cuisine Types
-            "Italian", "Mexican", "Asian", "French", "Indian", "Mediterranean", "American", "Thai", "Japanese", "Chinese",
-            
-            // Meal Types
-            "Breakfast", "Lunch", "Dinner", "Dessert", "Appetizer", "Snack", "Brunch", "Late Night",
-            
-            // Dietary Preferences
-            "Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Low-Carb", "Keto", "Paleo", "Halal", "Kosher",
-            
-            // Cooking Methods
-            "Baked", "Grilled", "Fried", "Steamed", "Roasted", "Slow Cooker", "Instant Pot", "Air Fryer", "Smoked",
-            
-            // Difficulty Levels
-            "Easy", "Medium", "Hard", "Beginner", "Advanced", "Quick", "30-Minute Meals",
-            
-            // Occasions
-            "Holiday", "Birthday", "Anniversary", "Party", "Date Night", "Family Dinner", "Potluck", "Picnic",
-            
-            // Seasons
-            "Spring", "Summer", "Fall", "Winter", "Seasonal",
-            
-            // Health & Wellness
-            "Healthy", "Low-Calorie", "High-Protein", "Low-Sodium", "Heart-Healthy", "Anti-Inflammatory",
-            
-            // Ingredient Types
-            "Chicken", "Beef", "Pork", "Fish", "Seafood", "Pasta", "Rice", "Vegetables", "Fruits", "Nuts", "Cheese",
-            
-            // Special Features
-            "One-Pot", "Make-Ahead", "Freezer-Friendly", "Kid-Friendly", "Crowd-Pleaser", "Comfort Food", "Gourmet"
-        );
-
-        for (String tagName : predefinedTags) {
-            Tag tag = new Tag();
-            tag.setName(tagName);
-            tagRepository.save(tag);
-        }
-    }
+    // Removed initializePredefinedTags: tags are seeded via test data.sql and managed externally in prod
 
     public List<TagDTO> getPopularTags(int limit) {
         List<TagDTO> allTags = tagRepository.findAllWithRecipeCount();

@@ -35,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureWebMvc
 @ActiveProfiles("test")
+@org.springframework.context.annotation.Import(com.recipehub.backendrecipehub.config.TestConfig.class)
 class TagControllerIntegrationTest {
 
     @Autowired
@@ -74,7 +75,7 @@ class TagControllerIntegrationTest {
         // Clean up in correct order to avoid foreign key constraint violations
         recipeRepository.deleteAll();
         recipeBookRepository.deleteAll();
-        tagRepository.deleteAll();
+        // Do NOT delete predefined tags seeded by data.sql
         userRepository.deleteAll();
         
         // Create test user
@@ -86,10 +87,8 @@ class TagControllerIntegrationTest {
         
         testUser = userRepository.findByUsername("testuser").orElse(null);
         
-        // Create test tag
-        testTag = new Tag();
-        testTag.setName("TestTag");
-        testTag = tagRepository.save(testTag);
+        // Use an existing predefined tag from data.sql
+        testTag = tagRepository.findByNameIgnoreCase("Italian").orElseThrow();
     }
 
 
@@ -108,25 +107,7 @@ class TagControllerIntegrationTest {
                 .andExpect(status().isNotFound());
     }
 
-    @Test
-    void testInitializePredefinedTags() throws Exception {
-        // Clear existing tags first
-        tagRepository.deleteAll();
-        
-        mockMvc.perform(post("/api/tags/initialize"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.TEXT_PLAIN_VALUE + ";charset=UTF-8"))
-                .andExpect(content().string("Predefined tags initialized successfully"));
-    }
-
-    @Test
-    void testInitializePredefinedTagsAlreadyExists() throws Exception {
-        // Tags already exist from setUp()
-        mockMvc.perform(post("/api/tags/initialize"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.TEXT_PLAIN_VALUE + ";charset=UTF-8"))
-                .andExpect(content().string("Predefined tags initialized successfully"));
-    }
+    // Removed initialize endpoint tests; tags are seeded via src/test/resources/data.sql
 
     @Test
     void testGetPopularTags() throws Exception {
@@ -247,12 +228,9 @@ class TagControllerIntegrationTest {
     }
 
     private void createRecipeWithTag(String tagName) {
-        // Create tag if it doesn't exist
-        Tag tag = tagRepository.findByNameIgnoreCase(tagName).orElseGet(() -> {
-            Tag newTag = new Tag();
-            newTag.setName(tagName);
-            return tagRepository.save(newTag);
-        });
+        // Ensure tag exists (predefined via data.sql)
+        tagRepository.findByNameIgnoreCase(tagName)
+                .orElseThrow(() -> new RuntimeException("Missing predefined tag: " + tagName));
 
         // Create recipe with tag
         List<IngredientDTO> ingredients = new ArrayList<>();

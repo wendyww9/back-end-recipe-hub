@@ -82,8 +82,7 @@ class RecipeControllerIntegrationTest {
         // Get the created user from repository
         testUser = userRepository.findByUsername("testuser").orElse(null);
         
-        // Initialize tags for testing
-        tagService.initializePredefinedTags();
+        // Tags are seeded via src/test/resources/data.sql
     }
 
     @Test
