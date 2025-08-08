@@ -19,7 +19,7 @@ public class Tag {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, columnDefinition = "CITEXT")
     private String name;
 
     @ManyToMany(mappedBy = "tags")

@@ -56,12 +56,9 @@ public class TagService {
         // ✅ Lookup existing tags by name (case-insensitive)
         List<Tag> resolvedTags = new ArrayList<>();
         for (String tagName : tagNames) {
-            // Use a custom query to handle case-insensitive search and get first result
-            List<Tag> matchingTags = tagRepository.findByNameIgnoreCaseList(tagName);
-            if (matchingTags.isEmpty()) {
-                throw new ValidationException("Unknown tag: " + tagName);
-            }
-            resolvedTags.add(matchingTags.get(0)); // Take the first match
+            Tag tag = tagRepository.findByNameIgnoreCase(tagName)
+                    .orElseThrow(() -> new ValidationException("Unknown tag: " + tagName));
+            resolvedTags.add(tag);
         }
     
         return resolvedTags;
