@@ -73,19 +73,20 @@ class TagControllerIntegrationTest {
         objectMapper = new ObjectMapper();
         
         // Clean up in correct order to avoid foreign key constraint violations
-        recipeRepository.deleteAll();
-        recipeBookRepository.deleteAll();
+        recipeRepository.deleteAllInBatch();
+        recipeBookRepository.deleteAllInBatch();
         // Do NOT delete predefined tags seeded by data.sql
-        userRepository.deleteAll();
+        userRepository.deleteAllInBatch();
         
         // Create test user
         UserRequestDTO userRequestDTO = new UserRequestDTO();
-        userRequestDTO.setUsername("testuser");
-        userRequestDTO.setEmail("test@example.com");
+        String suffix = String.valueOf(System.nanoTime());
+        userRequestDTO.setUsername("testuser_" + suffix);
+        userRequestDTO.setEmail("test_" + suffix + "@example.com");
         userRequestDTO.setPassword("password");
         userService.registerUser(userRequestDTO);
         
-        testUser = userRepository.findByUsername("testuser").orElse(null);
+        testUser = userRepository.findByUsernameAndDeletedFalse(userRequestDTO.getUsername()).orElse(null);
         
         // Use an existing predefined tag from data.sql
         testTag = tagRepository.findByNameIgnoreCase("Italian").orElseThrow();

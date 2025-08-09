@@ -10,8 +10,12 @@ public class RecipeMapper {
         return Recipe.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
-                .ingredients(dto.getIngredients().stream().map(RecipeMapper::mapIngredient).collect(Collectors.toList()))
-                .instructions(dto.getInstructions())
+                .ingredients(dto.getIngredients() == null
+                    ? new ArrayList<>()
+                    : dto.getIngredients().stream().map(RecipeMapper::mapIngredient).collect(Collectors.toList()))
+                .instructions(dto.getInstructions() == null
+                    ? new ArrayList<>()
+                    : dto.getInstructions())
                 .imageUrl(dto.getImageUrl())
                 .isPublic(dto.getIsPublic())
                 .cooked(dto.getCooked())
@@ -26,15 +30,25 @@ public class RecipeMapper {
         dto.setId(recipe.getId());
         dto.setTitle(recipe.getTitle());
         dto.setDescription(recipe.getDescription());
-        dto.setIngredients(recipe.getIngredients().stream().map(RecipeMapper::mapIngredientDto).collect(Collectors.toList()));
-        dto.setInstructions(recipe.getInstructions());
+        dto.setIngredients(
+            recipe.getIngredients() != null
+                ? recipe.getIngredients().stream().map(RecipeMapper::mapIngredientDto).collect(Collectors.toList())
+                : new ArrayList<>()
+        );
+        dto.setInstructions(
+            recipe.getInstructions() != null ? recipe.getInstructions() : new ArrayList<>()
+        );
         dto.setImageUrl(recipe.getImageUrl());
         dto.setIsPublic(recipe.isPublic());
         dto.setCooked(recipe.isCooked());
         dto.setFavourite(recipe.isFavourite());
         dto.setLikeCount(recipe.getLikeCount());
-        dto.setAuthorId(recipe.getAuthor().getId());
-        dto.setAuthorUsername(recipe.getAuthor().getUsername());
+        if (recipe.getAuthor() != null) {
+            dto.setAuthorId(recipe.getAuthor().getId());
+            dto.setAuthorUsername(
+                recipe.getAuthor().isDeleted() ? "Deleted Account" : recipe.getAuthor().getUsername()
+            );
+        }
         dto.setOriginalRecipeId(recipe.getOriginalRecipe() != null ? recipe.getOriginalRecipe().getId() : null);
         dto.setCreatedAt(recipe.getCreatedAt());
         dto.setUpdatedAt(recipe.getUpdatedAt());
@@ -76,10 +90,14 @@ public class RecipeMapper {
             recipe.setDescription(dto.getDescription());
         }
         if (dto.getIngredients() != null) {
-            recipe.setIngredients(dto.getIngredients().stream().map(RecipeMapper::mapIngredient).collect(Collectors.toList()));
+            recipe.setIngredients(dto.getIngredients().isEmpty()
+                ? new ArrayList<>()
+                : dto.getIngredients().stream().map(RecipeMapper::mapIngredient).collect(Collectors.toList()));
         }
         if (dto.getInstructions() != null) {
-            recipe.setInstructions(dto.getInstructions());
+            recipe.setInstructions(dto.getInstructions().isEmpty()
+                ? new ArrayList<>()
+                : dto.getInstructions());
         }
         if (dto.getImageUrl() != null) {
             // Handle empty string as null (to remove image)

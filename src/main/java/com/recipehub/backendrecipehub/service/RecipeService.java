@@ -533,4 +533,11 @@ public class RecipeService {
             return null;
         }
     }
+
+    @Transactional
+    public void deleteRecipe(Long recipeId) {
+        Recipe r = recipeRepository.findById(recipeId).orElseThrow(() -> new RecipeNotFoundException(recipeId));
+        recipeRepository.delete(r); // triggers @SQLDelete on Recipe only
+    // Recipebook entries remain; queries will hide deleted recipe rows.
+}
 }

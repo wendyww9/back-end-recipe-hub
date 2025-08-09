@@ -2,9 +2,7 @@ package com.recipehub.backendrecipehub.service;
 
 import com.recipehub.backendrecipehub.exception.RecipeNotFoundException;
 import com.recipehub.backendrecipehub.exception.RecipeBookNotFoundException;
-import com.recipehub.backendrecipehub.exception.UnauthorizedException;
 import com.recipehub.backendrecipehub.exception.UserNotFoundException;
-import com.recipehub.backendrecipehub.mapper.RecipeMapper;
 import org.springframework.stereotype.Service;
 import com.recipehub.backendrecipehub.repository.RecipeBookRepository;
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
@@ -13,12 +11,12 @@ import com.recipehub.backendrecipehub.model.RecipeBook;
 import com.recipehub.backendrecipehub.model.Recipe;
 import com.recipehub.backendrecipehub.model.User;
 import com.recipehub.backendrecipehub.dto.RecipeBookDTO;
-import com.recipehub.backendrecipehub.dto.UserRequestDTO;
+import com.recipehub.backendrecipehub.dto.RecipeBookCreateRequest;
+import com.recipehub.backendrecipehub.dto.RecipeBookUpdateRequest;
 import com.recipehub.backendrecipehub.mapper.RecipeBookMapper;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+ 
 
 @Service
 public class RecipeBookService {
@@ -33,16 +31,16 @@ public class RecipeBookService {
         this.userRepository = userRepository;
     }
 
-    public RecipeBookDTO createRecipeBook(RecipeBookDTO recipeBookDTO) {
+    public RecipeBookDTO createRecipeBook(RecipeBookCreateRequest request) {
 
-        User user = userRepository.findById(recipeBookDTO.getUserId())
-                .orElseThrow(() -> new UserNotFoundException(recipeBookDTO.getUserId()));
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new UserNotFoundException(request.getUserId()));
 
-        RecipeBook book = RecipeBookMapper.toEntity(recipeBookDTO, user);
+        RecipeBook book = RecipeBookMapper.toEntity(request, user);
         
         // Handle recipe list if provided
-        if (recipeBookDTO.getRecipeIds() != null && !recipeBookDTO.getRecipeIds().isEmpty()) {
-            for (Long recipeId : recipeBookDTO.getRecipeIds()) {
+        if (request.getRecipeIds() != null && !request.getRecipeIds().isEmpty()) {
+            for (Long recipeId : request.getRecipeIds()) {
                 Recipe recipe = recipeRepository.findById(recipeId)
                         .orElseThrow(() -> new RecipeNotFoundException(recipeId));
                 book.getRecipes().add(recipe);
@@ -75,18 +73,18 @@ public class RecipeBookService {
         return RecipeBookMapper.toDTO(recipeBook);
     }
 
-    public RecipeBookDTO updateRecipeBook(Long id, RecipeBookDTO recipeBookDTO) {
+    public RecipeBookDTO updateRecipeBook(Long id, RecipeBookUpdateRequest request) {
         RecipeBook recipeBook = recipeBookRepository.findById(id)
                 .orElseThrow(() -> new RecipeBookNotFoundException(id));
 
-        RecipeBookMapper.updateEntity(recipeBookDTO, recipeBook);
+        RecipeBookMapper.updateEntity(request, recipeBook);
 
         // Handle recipe list updates if provided
-        if (recipeBookDTO.getRecipeIds() != null) {
+        if (request.getRecipeIds() != null) {
             // Clear current recipes and add new ones
             recipeBook.getRecipes().clear();
             
-            for (Long recipeId : recipeBookDTO.getRecipeIds()) {
+            for (Long recipeId : request.getRecipeIds()) {
                 Recipe recipe = recipeRepository.findById(recipeId)
                         .orElseThrow(() -> new RecipeNotFoundException(recipeId));
                 recipeBook.getRecipes().add(recipe);

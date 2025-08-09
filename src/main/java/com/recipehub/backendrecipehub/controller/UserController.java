@@ -1,30 +1,26 @@
 package com.recipehub.backendrecipehub.controller;
 
 import com.recipehub.backendrecipehub.model.User;
-import com.recipehub.backendrecipehub.model.Recipe;
 import com.recipehub.backendrecipehub.service.UserService;
 import com.recipehub.backendrecipehub.service.RecipeService;
 import com.recipehub.backendrecipehub.dto.RecipeResponseDTO;
 import com.recipehub.backendrecipehub.dto.UserResponseDTO;
 import com.recipehub.backendrecipehub.dto.UserUpdateDTO;
-import com.recipehub.backendrecipehub.mapper.RecipeMapper;
-import com.recipehub.backendrecipehub.model.RecipeBook;
 import com.recipehub.backendrecipehub.service.RecipeBookService;
 import com.recipehub.backendrecipehub.dto.RecipeBookDTO;
-import com.recipehub.backendrecipehub.mapper.RecipeBookMapper;
 import com.recipehub.backendrecipehub.mapper.UserMapper;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
+
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -68,9 +64,9 @@ public class UserController {
 
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@Positive @PathVariable Long id) {
-        userService.deleteById(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.ok(Map.of("message", "User deleted successfully"));      
     }
     
 

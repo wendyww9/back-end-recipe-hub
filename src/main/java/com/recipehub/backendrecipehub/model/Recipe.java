@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,6 +22,8 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @ToString(exclude = {"author", "originalRecipe"})
+@SQLDelete(sql = "UPDATE recipes SET deleted = true, deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLRestriction("deleted = false")
 public class Recipe {
 
     @Id
@@ -69,4 +73,11 @@ public class Recipe {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    @Builder.Default
+    @Column(name = "deleted", nullable = false)
+    private boolean deleted = false;  
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

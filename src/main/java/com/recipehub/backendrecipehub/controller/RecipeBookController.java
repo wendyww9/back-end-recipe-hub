@@ -1,10 +1,11 @@
 package com.recipehub.backendrecipehub.controller;
 
 import com.recipehub.backendrecipehub.dto.RecipeBookDTO;
+import com.recipehub.backendrecipehub.dto.RecipeBookCreateRequest;
+import com.recipehub.backendrecipehub.dto.RecipeBookUpdateRequest;
 import com.recipehub.backendrecipehub.service.RecipeBookService;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,8 +23,8 @@ public class RecipeBookController {
     }
 
     @PostMapping
-    public ResponseEntity<RecipeBookDTO> createRecipeBook(@Valid @RequestBody RecipeBookDTO recipeBookDTO) {
-        RecipeBookDTO createdRecipeBook = recipeBookService.createRecipeBook(recipeBookDTO);
+    public ResponseEntity<RecipeBookDTO> createRecipeBook(@Valid @RequestBody RecipeBookCreateRequest request) {
+        RecipeBookDTO createdRecipeBook = recipeBookService.createRecipeBook(request);
         return ResponseEntity.ok(createdRecipeBook);
     }
 
@@ -48,8 +49,8 @@ public class RecipeBookController {
     @PutMapping("/{id}")
     public ResponseEntity<RecipeBookDTO> updateRecipeBook(
             @Positive @PathVariable Long id, 
-            @Valid @RequestBody RecipeBookDTO recipeBookDTO) {
-        RecipeBookDTO updatedRecipeBook = recipeBookService.updateRecipeBook(id, recipeBookDTO);
+            @Valid @RequestBody RecipeBookUpdateRequest request) {
+        RecipeBookDTO updatedRecipeBook = recipeBookService.updateRecipeBook(id, request);
         return ResponseEntity.ok(updatedRecipeBook);
     }
 

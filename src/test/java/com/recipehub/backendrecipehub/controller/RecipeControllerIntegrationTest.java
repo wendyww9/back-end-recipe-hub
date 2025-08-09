@@ -6,19 +6,20 @@ import com.recipehub.backendrecipehub.dto.IngredientDTO;
 import com.recipehub.backendrecipehub.dto.RecipeRequestDTO;
 import com.recipehub.backendrecipehub.dto.UserRequestDTO;
 import com.recipehub.backendrecipehub.model.User;
-import com.recipehub.backendrecipehub.service.TagService;
+// removed unused TagService import
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
 import com.recipehub.backendrecipehub.repository.UserRepository;
-import com.recipehub.backendrecipehub.service.RecipeService;
+// removed unused RecipeService import
 import com.recipehub.backendrecipehub.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
+// removed unused TestPropertySource import
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -50,18 +51,18 @@ class RecipeControllerIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private RecipeService recipeService;
+    // removed unused RecipeService field
 
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private TagService tagService;
+    // removed unused TagService field
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
     private User testUser;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUp() {
@@ -69,18 +70,23 @@ class RecipeControllerIntegrationTest {
         objectMapper = new ObjectMapper();
         
         // Clean up and create test user
-        recipeRepository.deleteAll();
-        userRepository.deleteAll();
+        // Clear join tables and self-references to avoid FK violations during cleanup
+        jdbcTemplate.update("DELETE FROM recipe_tag");
+        jdbcTemplate.update("DELETE FROM recipe_book_recipes");
+        jdbcTemplate.update("UPDATE recipes SET original_recipe_id = NULL");
+        recipeRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
         
         // Use UserService to properly encode password
         UserRequestDTO userRequestDTO = new UserRequestDTO();
-        userRequestDTO.setUsername("testuser");
-        userRequestDTO.setEmail("test@example.com");
+        String suffix = String.valueOf(System.nanoTime());
+        userRequestDTO.setUsername("testuser_" + suffix);
+        userRequestDTO.setEmail("test_" + suffix + "@example.com");
         userRequestDTO.setPassword("password");
         userService.registerUser(userRequestDTO);
         
         // Get the created user from repository
-        testUser = userRepository.findByUsername("testuser").orElse(null);
+        testUser = userRepository.findByUsernameAndDeletedFalse(userRequestDTO.getUsername()).orElse(null);
         
         // Tags are seeded via src/test/resources/data.sql
     }
@@ -220,12 +226,13 @@ class RecipeControllerIntegrationTest {
     void testForkRecipeWithAuthorAssignment() throws Exception {
         // Create a second test user
         UserRequestDTO secondUserRequest = new UserRequestDTO();
-        secondUserRequest.setUsername("seconduser");
-        secondUserRequest.setEmail("second@example.com");
+        String sfx2 = String.valueOf(System.nanoTime());
+        secondUserRequest.setUsername("seconduser_" + sfx2);
+        secondUserRequest.setEmail("second_" + sfx2 + "@example.com");
         secondUserRequest.setPassword("password");
         userService.registerUser(secondUserRequest);
         
-        User secondUser = userRepository.findByUsername("seconduser").orElse(null);
+        User secondUser = userRepository.findByUsernameAndDeletedFalse(secondUserRequest.getUsername()).orElse(null);
         
         // Create an original recipe
         List<IngredientDTO> ingredients = new ArrayList<>();
@@ -270,7 +277,7 @@ class RecipeControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Forked Recipe"))
                 .andExpect(jsonPath("$.authorId").value(secondUser.getId()))
-                .andExpect(jsonPath("$.authorUsername").value("seconduser"))
+                .andExpect(jsonPath("$.authorUsername").value(secondUserRequest.getUsername()))
                 .andExpect(jsonPath("$.originalRecipeId").value(originalRecipeId))
                 .andExpect(jsonPath("$.likeCount").value(0))
                 .andExpect(jsonPath("$.tags").isArray());

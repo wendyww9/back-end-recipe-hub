@@ -1,6 +1,5 @@
 package com.recipehub.backendrecipehub.service;
 
-import com.recipehub.backendrecipehub.dto.RecipeBookDTO;
 import com.recipehub.backendrecipehub.dto.RecipeRequestDTO;
 import com.recipehub.backendrecipehub.dto.UserRequestDTO;
 import com.recipehub.backendrecipehub.model.Recipe;
@@ -9,6 +8,7 @@ import com.recipehub.backendrecipehub.model.User;
 import com.recipehub.backendrecipehub.repository.RecipeBookRepository;
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
 import com.recipehub.backendrecipehub.repository.UserRepository;
+import com.recipehub.backendrecipehub.dto.RecipeBookCreateRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,8 +45,6 @@ class UserDeletionTest {
     private RecipeBookRepository recipeBookRepository;
 
     private User testUser;
-    private Recipe testRecipe;
-    private RecipeBook testRecipeBook;
     private Long recipeId;
     private Long recipeBookId;
 
@@ -64,7 +62,7 @@ class UserDeletionTest {
         userRequestDTO.setPassword("password");
         userService.registerUser(userRequestDTO);
         
-        testUser = userRepository.findByUsername("testuser").orElse(null);
+        testUser = userRepository.findByUsernameAndDeletedFalse("testuser").orElse(null);
         assertNotNull(testUser);
 
         // Create test recipe
@@ -83,13 +81,14 @@ class UserDeletionTest {
         recipeId = recipeResponse.getId();
 
         // Create test recipe book
-        RecipeBookDTO recipeBookDTO = new RecipeBookDTO();
-        recipeBookDTO.setName("Test Recipe Book");
-        recipeBookDTO.setDescription("Test Description");
-        recipeBookDTO.setUserId(testUser.getId());
-        recipeBookDTO.setIsPublic(true);
+        RecipeBookCreateRequest recipeBookCreate = new RecipeBookCreateRequest();
+        recipeBookCreate.setName("Test Recipe Book");
+        recipeBookCreate.setDescription("Test Description");
+        recipeBookCreate.setUserId(testUser.getId());
+        recipeBookCreate.setIsPublic(true);
+        recipeBookCreate.setRecipeIds(List.of(recipeId));
 
-        var recipeBookResponse = recipeBookService.createRecipeBook(recipeBookDTO);
+        var recipeBookResponse = recipeBookService.createRecipeBook(recipeBookCreate);
         assertNotNull(recipeBookResponse);
         recipeBookId = recipeBookResponse.getId();
     }

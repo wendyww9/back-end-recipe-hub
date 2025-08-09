@@ -8,6 +8,7 @@ import com.recipehub.backendrecipehub.repository.RecipeBookRepository;
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
 import com.recipehub.backendrecipehub.repository.UserRepository;
 import com.recipehub.backendrecipehub.service.RecipeBookService;
+import com.recipehub.backendrecipehub.dto.RecipeBookCreateRequest;
 import com.recipehub.backendrecipehub.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,20 +58,21 @@ class RecipeBookControllerIntegrationTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         objectMapper = new ObjectMapper();
         
-        // Clean up and create test user
-        recipeBookRepository.deleteAll();
-        recipeRepository.deleteAll();
-        userRepository.deleteAll();
+        // Clean up (hard delete to avoid soft-delete uniqueness conflicts)
+        recipeBookRepository.deleteAllInBatch();
+        recipeRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
         
         // Use UserService to properly encode password
         UserRequestDTO userRequestDTO = new UserRequestDTO();
-        userRequestDTO.setUsername("testuser");
-        userRequestDTO.setEmail("test@example.com");
+        String suffix = String.valueOf(System.nanoTime());
+        userRequestDTO.setUsername("testuser_" + suffix);
+        userRequestDTO.setEmail("test_" + suffix + "@example.com");
         userRequestDTO.setPassword("password");
         userService.registerUser(userRequestDTO);
         
         // Get the created user from repository
-        testUser = userRepository.findByUsername("testuser").orElse(null);
+        testUser = userRepository.findByUsernameAndDeletedFalse(userRequestDTO.getUsername()).orElse(null);
     }
 
     @Test
@@ -89,17 +91,16 @@ class RecipeBookControllerIntegrationTest {
 
     @Test
     void testCreateRecipeBook() throws Exception {
-        RecipeBookDTO recipeBookRequest = new RecipeBookDTO();
-        recipeBookRequest.setName("Test Recipe Book");
-        recipeBookRequest.setDescription("Test Description");
-        recipeBookRequest.setIsPublic(true);
-        recipeBookRequest.setUserId(testUser.getId());
-        recipeBookRequest.setRecipeIds(new ArrayList<>());
+        RecipeBookCreateRequest request = new RecipeBookCreateRequest();
+        request.setName("Test Recipe Book");
+        request.setDescription("Test Description");
+        request.setIsPublic(true);
+        request.setUserId(testUser.getId());
+        request.setRecipeIds(new ArrayList<>());
 
         mockMvc.perform(post("/api/recipebooks")
-                .param("userId", testUser.getId().toString())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(recipeBookRequest)))
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
     }
 
@@ -113,7 +114,7 @@ class RecipeBookControllerIntegrationTest {
     @Test
     void testDeleteRecipeBook() throws Exception {
         // Create a recipe book first
-        RecipeBookDTO recipeBookRequest = new RecipeBookDTO();
+        RecipeBookCreateRequest recipeBookRequest = new RecipeBookCreateRequest();
         recipeBookRequest.setName("Test Recipe Book");
         recipeBookRequest.setDescription("Test Description");
         recipeBookRequest.setIsPublic(true);
@@ -124,15 +125,14 @@ class RecipeBookControllerIntegrationTest {
         RecipeBookDTO createdBook = recipeBookService.createRecipeBook(recipeBookRequest);
 
         // Delete the recipe book
-        mockMvc.perform(delete("/api/recipebooks/" + createdBook.getId())
-                .param("userId", testUser.getId().toString()))
+        mockMvc.perform(delete("/api/recipebooks/" + createdBook.getId()))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     void testGetUserRecipeBooks() throws Exception {
         // Create a recipe book for the test user
-        RecipeBookDTO recipeBookRequest = new RecipeBookDTO();
+        RecipeBookCreateRequest recipeBookRequest = new RecipeBookCreateRequest();
         recipeBookRequest.setName("Test Recipe Book");
         recipeBookRequest.setDescription("Test Description");
         recipeBookRequest.setIsPublic(true);

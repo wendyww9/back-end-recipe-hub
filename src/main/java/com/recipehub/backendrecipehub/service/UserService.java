@@ -13,10 +13,12 @@ import com.recipehub.backendrecipehub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserService {
@@ -32,12 +34,12 @@ public class UserService {
 
     public UserResponseDTO registerUser(UserRequestDTO userRequestDTO) {
         // Check if username already exists
-        if (userRepository.findByUsername(userRequestDTO.getUsername()).isPresent()) {
+        if (userRepository.findByUsernameAndDeletedFalse(userRequestDTO.getUsername()).isPresent()) {
             throw new DuplicateResourceException("Username", userRequestDTO.getUsername());
         }
         
         // Check if email already exists
-        if (userRepository.findByEmail(userRequestDTO.getEmail()).isPresent()) {
+        if (userRepository.findByEmailAndDeletedFalse(userRequestDTO.getEmail()).isPresent()) {
             throw new DuplicateResourceException("Email", userRequestDTO.getEmail());
         }
         
@@ -62,11 +64,11 @@ public class UserService {
 
     private Optional<User> findUserByUsernameOrEmail(String usernameOrEmail) {
         // Try to find user by username first
-        Optional<User> userOpt = userRepository.findByUsername(usernameOrEmail);
+        Optional<User> userOpt = userRepository.findByUsernameAndDeletedFalse(usernameOrEmail);
         
         // If not found by username, try by email
         if (userOpt.isEmpty()) {
-            userOpt = userRepository.findByEmail(usernameOrEmail);
+            userOpt = userRepository.findByEmailAndDeletedFalse(usernameOrEmail);
         }
         
         return userOpt;
@@ -75,22 +77,35 @@ public class UserService {
 
 
     public Optional<UserResponseDTO> findByIdAsDTO(Long id) {
-        return userRepository.findById(id)
+        return userRepository.findByIdAndDeletedFalse(id)
                 .map(UserMapper::toResponseDTO);
     }
 
     public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
+        return userRepository.findByUsernameAndDeletedFalse(username);
     }
     
     public List<UserResponseDTO> findAllAsDTO() {
-        return userRepository.findAll().stream()
+        return userRepository.findAllByDeletedFalse().stream()
                 .map(UserMapper::toResponseDTO)
                 .collect(java.util.stream.Collectors.toList());
     }
 
-    public void deleteById(Long id) {
-        userRepository.deleteById(id);
+    @Transactional
+    public void deleteUser(Long id) {
+        User u = userRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException(id));
+
+        // Anonymize uniquely while preserving referential integrity
+        String markerBase = "deleted_" + u.getId() + "_" + System.currentTimeMillis();
+        u.setUsername("user_" + markerBase);
+        u.setEmail(markerBase + "@example.invalid");
+        // scramble password so login is impossible
+        u.setPassword(passwordEncoder.encode("ANON-" + UUID.randomUUID()));
+        userRepository.save(u);
+
+        // Soft delete via @SQLDelete (updates deleted=true, deleted_at=now())
+        userRepository.delete(u);
     }
 
 
@@ -118,7 +133,7 @@ public class UserService {
         if (updateDTO.getUsername() != null && !updateDTO.getUsername().trim().isEmpty()) {
             // Check if username already exists (excluding current user)
             if (!updateDTO.getUsername().equals(user.getUsername()) && 
-                userRepository.findByUsername(updateDTO.getUsername()).isPresent()) {
+                userRepository.findByUsernameAndDeletedFalse(updateDTO.getUsername()).isPresent()) {
                 throw new DuplicateResourceException("Username", updateDTO.getUsername());
             }
             user.setUsername(updateDTO.getUsername());
@@ -129,7 +144,7 @@ public class UserService {
         if (updateDTO.getEmail() != null && !updateDTO.getEmail().trim().isEmpty()) {
             // Check if email already exists (excluding current user)
             if (!updateDTO.getEmail().equals(user.getEmail()) && 
-                userRepository.findByEmail(updateDTO.getEmail()).isPresent()) {
+                userRepository.findByEmailAndDeletedFalse(updateDTO.getEmail()).isPresent()) {
                 throw new DuplicateResourceException("Email", updateDTO.getEmail());
             }
             user.setEmail(updateDTO.getEmail());

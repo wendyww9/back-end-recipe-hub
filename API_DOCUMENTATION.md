@@ -346,10 +346,16 @@ tail -f logs/application.log
 
 **Request Body:** None
 
-**Response Body (204 No Content):**
+**Response Body (200 OK):**
 ```json
-{}
+{ "message": "User deleted successfully" }
 ```
+
+**Behavior:**
+- Performs a soft delete on the user and anonymizes credentials (username/email randomized, password scrambled).
+- User is excluded from user listings and lookups (`/api/users`, `/api/users/{id}` returns 404 after deletion).
+- User-owned resources (recipes, recipe books) remain available.
+- Recipes authored by a deleted user will expose `authorUsername: "Deleted Account"` in responses.
 
 ---
 
@@ -994,6 +1000,11 @@ PUT /api/recipes/1/likecount?likeCount=15
 - Does not update the recipe's `updatedAt` timestamp
 - Simple count update without affecting recipe content
 
+**Deletion Behavior and Soft-Delete:**
+- Recipes are soft-deleted via `DELETE /api/recipes/{id}` (flagged `deleted=true`).
+- Soft-deleted recipes are excluded from list and recipe book responses.
+- Forked recipes remain even if the original is deleted.
+
 ---
 
 ### 21.1. Fork Recipe
@@ -1270,10 +1281,10 @@ file: [image file]
 
 ## Recipe Book Management Endpoints (`/api/recipebooks`)
 
-### 21.6. Create Recipe Book
+### 21.6. Create Recipe Book (New Request Type)
 **POST** `/api/recipebooks`
 
-**Request Body:**
+**Request Body (RecipeBookCreateRequest):**
 ```json
 {
   "name": "string (required, 1-255 characters)",
@@ -1382,10 +1393,10 @@ file: [image file]
 
 ---
 
-### 21.10. Update Recipe Book
+### 21.10. Update Recipe Book (New Request Type)
 **PUT** `/api/recipebooks/{id}`
 
-**Request Body (Partial Update Supported):**
+**Request Body (RecipeBookUpdateRequest, Partial Update Supported):**
 ```json
 {
   "name": "string (optional, 1-255 characters)",
@@ -1416,7 +1427,7 @@ file: [image file]
 - **Frontend Authorization:** Users can only access their own recipe books through "My books"
 - **Recipe Management:** The `recipeIds` array completely replaces the current recipe list
 - **Partial Updates:** Only send the fields you want to change
-- **Simplified API:** No userId parameter required - frontend ensures ownership
+- **Simplified API:** No `userId` required on update.
 
 ---
 
@@ -1436,6 +1447,9 @@ file: [image file]
 **Key Features:**
 - **Frontend Authorization:** Users can only access their own recipe books through "My books"
 - **Simplified API:** No userId parameter required - frontend ensures ownership
+
+**Behavior:**
+- Recipe books are hard-deleted. The junction table entries are removed, but the recipes themselves remain.
 
 ---
 

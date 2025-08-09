@@ -1,6 +1,8 @@
 package com.recipehub.backendrecipehub.mapper;
 
 import com.recipehub.backendrecipehub.dto.RecipeBookDTO;
+import com.recipehub.backendrecipehub.dto.RecipeBookCreateRequest;
+import com.recipehub.backendrecipehub.dto.RecipeBookUpdateRequest;
 import com.recipehub.backendrecipehub.model.RecipeBook;
 import com.recipehub.backendrecipehub.model.Recipe;
 import com.recipehub.backendrecipehub.model.User;
@@ -12,9 +14,9 @@ import java.util.stream.Collectors;
 @Component
 public class RecipeBookMapper {
 
-    public static RecipeBook toEntity(RecipeBookDTO dto, User user) {
+
+    public static RecipeBook toEntity(RecipeBookCreateRequest dto, User user) {
         return RecipeBook.builder()
-                .id(dto.getId())
                 .name(dto.getName())
                 .description(dto.getDescription())
                 .isPublic(dto.getIsPublic() != null ? dto.getIsPublic() : false)
@@ -45,15 +47,16 @@ public class RecipeBookMapper {
                 .collect(Collectors.toList());
     }
 
-    public static void updateEntity(RecipeBookDTO recipeBookDTO, RecipeBook recipeBook) {
-        if (recipeBookDTO.getName() != null) {
-            recipeBook.setName(recipeBookDTO.getName());
+
+    public static void updateEntity(RecipeBookUpdateRequest updateRequest, RecipeBook recipeBook) {
+        if (updateRequest.getName() != null) {
+            recipeBook.setName(updateRequest.getName());
         }
-        if (recipeBookDTO.getDescription() != null) {
-            recipeBook.setDescription(recipeBookDTO.getDescription());
+        if (updateRequest.getDescription() != null) {
+            recipeBook.setDescription(updateRequest.getDescription());
         }
-        if (recipeBookDTO.getIsPublic() != null) {
-            recipeBook.setPublic(recipeBookDTO.getIsPublic());
+        if (updateRequest.getIsPublic() != null) {
+            recipeBook.setPublic(updateRequest.getIsPublic());
         }
     }
 } 

@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,7 +35,7 @@ public class RecipeController {
         this.recipeService = recipeService;
     }
 
-        @PostMapping
+    @PostMapping
     public ResponseEntity<RecipeResponseDTO> createRecipe(
             @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam("title") String title,
@@ -177,5 +178,11 @@ public class RecipeController {
             errorResponse.put("error", "Failed to delete recipe image: " + e.getMessage());
             return ResponseEntity.internalServerError().body(errorResponse);
         }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> deleteRecipe(@PathVariable Long id) {
+        recipeService.deleteRecipe(id);
+        return ResponseEntity.ok(Map.of("message", "Recipe deleted successfully"));
     }
 }

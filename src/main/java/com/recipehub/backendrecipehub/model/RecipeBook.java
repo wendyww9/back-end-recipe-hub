@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-
+import org.hibernate.annotations.SQLRestriction;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -42,6 +42,7 @@ public class RecipeBook {
             joinColumns = @JoinColumn(name = "recipe_book_id"),
             inverseJoinColumns = @JoinColumn(name = "recipe_id")
     )
+    @SQLRestriction("deleted = false") 
     @JsonIgnore
     @Builder.Default
     private Set<Recipe> recipes = new HashSet<>();
