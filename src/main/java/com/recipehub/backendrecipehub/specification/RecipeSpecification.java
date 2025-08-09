@@ -46,7 +46,16 @@ public class RecipeSpecification {
                 return cb.conjunction();
             }
             Join<Object, Object> tags = root.join("tags", JoinType.INNER);
-            return tags.get("name").in(tagNames);
+            // Case-insensitive IN: lower(tag.name) IN lower(tagNames)
+            var lowered = tagNames.stream()
+                    .filter(n -> n != null)
+                    .map(String::toLowerCase)
+                    .toList();
+            CriteriaBuilder.In<String> inClause = cb.in(cb.lower(tags.get("name")));
+            for (String n : lowered) {
+                inClause.value(n);
+            }
+            return inClause;
         };
     }
 
@@ -60,10 +69,15 @@ public class RecipeSpecification {
             Root<Recipe> subRoot = subquery.from(Recipe.class);
             Join<Object, Object> tagJoin = subRoot.join("tags");
 
+            var lowered = tagNames.stream()
+                    .filter(n -> n != null)
+                    .map(String::toLowerCase)
+                    .toList();
+
             subquery.select(subRoot.get("id"))
-                    .where(tagJoin.get("name").in(tagNames))
+                    .where(cb.lower(tagJoin.get("name")).in(lowered))
                     .groupBy(subRoot.get("id"))
-                    .having(cb.equal(cb.countDistinct(tagJoin.get("name")), tagNames.size()));
+                    .having(cb.equal(cb.countDistinct(cb.lower(tagJoin.get("name"))), lowered.size()));
 
             return cb.in(root.get("id")).value(subquery);
         };

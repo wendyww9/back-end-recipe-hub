@@ -100,7 +100,7 @@ class RecipeControllerIntegrationTest {
 
     @Test
     void testGetAllPublicRecipes() throws Exception {
-        mockMvc.perform(get("/api/recipes/public"))
+        mockMvc.perform(get("/api/recipes"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));
     }

@@ -733,11 +733,7 @@ GET /api/recipes/search?title=chocolate
     "title": "Chocolate Cake",
     "description": "A delicious chocolate cake recipe",
     "ingredients": [
-      {
-        "name": "Chocolate",
-        "unit": "cups",
-        "quantity": 2.0
-      }
+      { "name": "Chocolate", "unit": "cups", "quantity": 2.0 }
     ],
     "instructions": ["Mix chocolate", "Bake at 350F"],
     "isPublic": true,
@@ -749,28 +745,6 @@ GET /api/recipes/search?title=chocolate
     "originalRecipeId": null,
     "createdAt": "2025-07-29T21:51:22.106186",
     "updatedAt": "2025-07-29T21:51:22.108822"
-  },
-  {
-    "id": 2,
-    "title": "Hot Chocolate",
-    "description": "Warm chocolate drink",
-    "ingredients": [
-      {
-        "name": "Cocoa Powder",
-        "unit": "tbsp",
-        "quantity": 2.0
-      }
-    ],
-    "instructions": ["Mix cocoa with hot milk"],
-    "isPublic": false,
-    "cooked": true,
-    "favourite": true,
-    "likeCount": 5,
-    "authorId": 2,
-    "authorUsername": "string2",
-    "originalRecipeId": null,
-    "createdAt": "2025-07-29T21:52:15.123456",
-    "updatedAt": "2025-07-29T21:52:15.123456"
   }
 ]
 ```
@@ -781,9 +755,9 @@ GET /api/recipes/search?title=chocolate
 ```
 
 **Key Features:**
+- **Public Only:** Returns only recipes where `isPublic: true`
 - **Case-Insensitive:** Search is not case-sensitive (e.g., "chocolate" matches "Chocolate")
 - **Partial Matching:** Uses `LIKE` query with wildcards (e.g., "choc" matches "Chocolate")
-- **All Recipes:** Returns both public and private recipes that match the search term
 - **Empty Results:** Returns empty array `[]` when no matches are found
 - **DTO Format:** Returns `RecipeResponseDTO` objects with complete recipe information
 
@@ -1343,27 +1317,7 @@ file: [image file]
 ---
 
 ### 21.8. Get All Public Recipe Books
-**GET** `/api/recipebooks/public`
-
-**Request Body:** None
-
-**Response Body (200 OK):**
-```json
-[
-  {
-    "id": 1,
-    "name": "My Breakfast Recipes",
-    "description": "Collection of my favorite breakfast recipes",
-    "isPublic": true,
-    "userId": 1,
-    "recipeIds": [1, 2, 3]
-  }
-]
-```
-
-**Key Features:**
-- **Public Only:** Returns only recipe books where `isPublic: true`
-- **DTO Format:** Returns `RecipeBookDTO` objects with complete recipe book information
+Merged into GET `/api/recipebooks` which returns public recipe books.
 
 ---
 
@@ -1620,7 +1574,7 @@ Notes:
 - `title` (string): Search for recipes with title containing this text
 - `tags` (array): Search for recipes with any of these tags
 - `author` (string): Search for recipes by author username
-- `isPublic` (boolean): Filter by public/private status
+  (Public-only enforced server-side)
 - `cooked` (boolean): Filter by cooked status
 - `favourite` (boolean): Filter by favourite status
 - `cuisine` (string): Filter by cuisine type (e.g., "Italian", "Mexican")

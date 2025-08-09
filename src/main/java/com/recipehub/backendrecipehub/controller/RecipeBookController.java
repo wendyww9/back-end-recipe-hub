@@ -30,15 +30,15 @@ public class RecipeBookController {
 
     @GetMapping
     public ResponseEntity<List<RecipeBookDTO>> getAllRecipeBooks() {
-        List<RecipeBookDTO> recipeBooks = recipeBookService.getAllRecipeBooks();
-        return ResponseEntity.ok(recipeBooks);
-    }
-
-    @GetMapping("/public")
-    public ResponseEntity<List<RecipeBookDTO>> getAllPublicRecipeBooks() {
         List<RecipeBookDTO> recipeBooks = recipeBookService.getAllPublicRecipeBooks();
         return ResponseEntity.ok(recipeBooks);
     }
+
+    // @GetMapping("/public")
+    // public ResponseEntity<List<RecipeBookDTO>> getAllPublicRecipeBooks() {
+    //     List<RecipeBookDTO> recipeBooks = recipeBookService.getAllPublicRecipeBooks();
+    //     return ResponseEntity.ok(recipeBooks);
+    // }
 
     @GetMapping("/{id}")
     public ResponseEntity<RecipeBookDTO> getRecipeBookById(@Positive @PathVariable Long id) {

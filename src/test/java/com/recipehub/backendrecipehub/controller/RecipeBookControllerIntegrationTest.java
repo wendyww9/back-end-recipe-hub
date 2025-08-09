@@ -84,7 +84,7 @@ class RecipeBookControllerIntegrationTest {
 
     @Test
     void testGetAllPublicRecipeBooks() throws Exception {
-        mockMvc.perform(get("/api/recipebooks/public"))
+        mockMvc.perform(get("/api/recipebooks"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));
     }

@@ -62,12 +62,12 @@ public class RecipeBookService {
     }
 
     public List<RecipeBookDTO> getAllRecipeBooks() {
-        List<RecipeBook> recipeBooks = recipeBookRepository.findAll();
+        List<RecipeBook> recipeBooks = recipeBookRepository.findByIsPublicTrue();
         return RecipeBookMapper.toDTOList(recipeBooks);
     }
     
     public RecipeBookDTO getRecipeBookById(Long id) {
-        RecipeBook recipeBook = recipeBookRepository.findById(id)
+        RecipeBook recipeBook = recipeBookRepository.findByIdAndIsPublicTrue(id)
                 .orElseThrow(() -> new RecipeBookNotFoundException(id));
 
         return RecipeBookMapper.toDTO(recipeBook);

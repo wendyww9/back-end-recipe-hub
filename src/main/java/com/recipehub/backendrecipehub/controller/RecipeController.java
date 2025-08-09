@@ -5,20 +5,17 @@ import com.recipehub.backendrecipehub.dto.RecipeResponseDTO;
 import com.recipehub.backendrecipehub.exception.RecipeNotFoundException;
 import com.recipehub.backendrecipehub.service.RecipeService;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
+// removed unused Valid import
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.s3.S3Client;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+// removed unused imports
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,20 +57,19 @@ public class RecipeController {
 
     @GetMapping
     public List<RecipeResponseDTO> getAllRecipes() {
-        return recipeService.getAllRecipes();
-    }
-
-    @GetMapping("/public")
-    public List<RecipeResponseDTO> getAllPublicRecipes() {
         return recipeService.getAllPublicRecipes();
     }
+
+    // @GetMapping("/public")
+    // public List<RecipeResponseDTO> getAllPublicRecipes() {
+    //     return recipeService.getAllPublicRecipes();
+    // }
 
     @GetMapping("/search")
     public ResponseEntity<List<RecipeResponseDTO>> searchRecipes(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) List<String> tags,
             @RequestParam(required = false) String author,
-            @RequestParam(required = false) Boolean isPublic,
             @RequestParam(required = false) Boolean cooked,
             @RequestParam(required = false) Boolean favourite,
             @RequestParam(required = false) String difficulty,
@@ -88,7 +84,7 @@ public class RecipeController {
             @RequestParam(required = false) String specialFeature) {
         
         List<RecipeResponseDTO> recipes = recipeService.searchRecipes(
-                title, tags, author, isPublic, cooked, favourite, difficulty,
+                title, tags, author, cooked, favourite, difficulty,
                 cuisine, mealType, dietary, cookingMethod, occasion, season,
                 health, ingredient, specialFeature);
         return ResponseEntity.ok(recipes);
@@ -105,8 +101,6 @@ public class RecipeController {
     public ResponseEntity<RecipeResponseDTO> updateRecipe(
             @Positive @PathVariable Long id, 
             @RequestBody RecipeRequestDTO requestDTO) {
-        // TODO: Get actual user ID from authentication context
-        // Long userId = requestDTO.getAuthorId();
         RecipeResponseDTO updatedRecipe = recipeService.updateRecipeWithValidation(id, requestDTO);
         return ResponseEntity.ok(updatedRecipe);
     }
@@ -122,9 +116,8 @@ public class RecipeController {
     public ResponseEntity<RecipeResponseDTO> forkRecipe(
         @Positive @PathVariable Long id,
         @RequestBody(required = false) RecipeRequestDTO modifications) {
-        // Use authorId from request body to set the new author
         Long userId = modifications != null && modifications.getAuthorId() != null ? 
-                modifications.getAuthorId() : 1L; // Fallback to 1 if not provided
+                modifications.getAuthorId() : 1L;
         RecipeResponseDTO forkedRecipe = recipeService.forkRecipe(id, modifications, userId);
         return ResponseEntity.ok(forkedRecipe);
     }
@@ -137,8 +130,7 @@ public class RecipeController {
             @RequestParam("file") MultipartFile file) {
         
         try {
-            // TODO: Get actual user ID from authentication context
-            Long userId = 1L; // Placeholder
+            Long userId = 1L;
             RecipeResponseDTO updatedRecipe = recipeService.uploadRecipeImage(id, file, userId);
             
             Map<String, Object> response = new HashMap<>();
@@ -161,8 +153,7 @@ public class RecipeController {
     public ResponseEntity<Map<String, Object>> deleteRecipeImage(@Positive @PathVariable Long id) {
         
         try {
-            // TODO: Get actual user ID from authentication context
-            Long userId = 1L; // Placeholder
+            Long userId = 1L;
             RecipeResponseDTO updatedRecipe = recipeService.deleteRecipeImage(id, userId);
             
             Map<String, Object> response = new HashMap<>();

@@ -4,11 +4,8 @@ import com.recipehub.backendrecipehub.dto.IngredientDTO;
 import com.recipehub.backendrecipehub.dto.RecipeRequestDTO;
 import com.recipehub.backendrecipehub.dto.RecipeResponseDTO;
 import com.recipehub.backendrecipehub.exception.RecipeNotFoundException;
-import com.recipehub.backendrecipehub.exception.UnauthorizedException;
-import com.recipehub.backendrecipehub.exception.UserNotFoundException;
 import com.recipehub.backendrecipehub.exception.ValidationException;
 import com.recipehub.backendrecipehub.mapper.RecipeMapper;
-import com.recipehub.backendrecipehub.model.Ingredient;
 import com.recipehub.backendrecipehub.model.Recipe;
 import com.recipehub.backendrecipehub.model.Tag;
 import com.recipehub.backendrecipehub.model.User;
@@ -20,7 +17,6 @@ import com.recipehub.backendrecipehub.specification.RecipeSpecification;
 import com.recipehub.backendrecipehub.service.S3Service;
 import com.recipehub.backendrecipehub.service.TagService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -115,7 +111,8 @@ public class RecipeService {
 
     @Transactional(readOnly = true)
     public Optional<RecipeResponseDTO> getRecipeById(Long id) {
-        return recipeRepository.findById(id)
+        // Only return public recipes on GET
+        return recipeRepository.findByIdAndIsPublicTrue(id)
                 .map(RecipeMapper::toDTO);
     }
 
@@ -274,20 +271,16 @@ public class RecipeService {
     // Enhanced search method with multiple criteria using JPA Specifications
     @Transactional(readOnly = true)
     public List<RecipeResponseDTO> searchRecipes(
-            String title, List<String> tags, String author, Boolean isPublic,
+            String title, List<String> tags, String author,
             Boolean cooked, Boolean favourite, String difficulty, String cuisine,
             String mealType, String dietary, String cookingMethod, String occasion,
             String season, String health, String ingredient, String specialFeature) {
         
-        // Build specification
-        Specification<Recipe> spec = Specification.where(null);
+        // Build specification (public recipes only)
+        Specification<Recipe> spec = RecipeSpecification.isPublic(true);
         
         if (title != null && !title.trim().isEmpty()) {
             spec = spec.and(RecipeSpecification.hasTitle(title));
-        }
-        
-        if (isPublic != null) {
-            spec = spec.and(RecipeSpecification.isPublic(isPublic));
         }
         
         if (cooked != null) {
