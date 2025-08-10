@@ -15,4 +15,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Active-only helpers (exclude soft-deleted users)
     Optional<User> findByIdAndDeletedFalse(Long id);
     List<User> findAllByDeletedFalse();
+    
+    // Case-insensitive username lookup
+    Optional<User> findByUsernameIgnoreCaseAndDeletedFalse(String username);
 }

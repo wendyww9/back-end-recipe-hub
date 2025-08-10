@@ -29,6 +29,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
+import com.recipehub.backendrecipehub.dto.AuthorSearchResponse;
+import com.recipehub.backendrecipehub.dto.RecipeBookDTO;
+import com.recipehub.backendrecipehub.mapper.RecipeBookMapper;
+import com.recipehub.backendrecipehub.model.RecipeBook;
 
 @Service
 public class RecipeService {
@@ -270,12 +274,29 @@ public class RecipeService {
 
     // Enhanced search method with multiple criteria using JPA Specifications
     @Transactional(readOnly = true)
-    public List<RecipeResponseDTO> searchRecipes(
-            String title, List<String> tags, String author,
+    public Object searchRecipes(
+            String title, List<String> tags, String author, Long authorId,
             Boolean cooked, Boolean favourite, String difficulty, String cuisine,
             String mealType, String dietary, String cookingMethod, String occasion,
             String season, String health, String ingredient, String specialFeature) {
         
+        // Check if only author-related parameters are provided
+        boolean hasOnlyAuthorParams = (authorId != null || (author != null && !author.trim().isEmpty())) &&
+                title == null && (tags == null || tags.isEmpty()) && cooked == null && favourite == null &&
+                difficulty == null && cuisine == null && mealType == null && dietary == null &&
+                cookingMethod == null && occasion == null && season == null && health == null &&
+                ingredient == null && specialFeature == null;
+        
+        // If only author parameters are provided, return both recipes and recipe books
+        if (hasOnlyAuthorParams) {
+            if (authorId != null) {
+                return searchByAuthorId(authorId);
+            } else if (author != null && !author.trim().isEmpty()) {
+                return searchByAuthorName(author);
+            }
+        }
+        
+        // If other parameters are provided, only search recipes and apply all filters
         // Build specification (public recipes only)
         Specification<Recipe> spec = RecipeSpecification.isPublic(true);
         
@@ -293,6 +314,10 @@ public class RecipeService {
         
         if (author != null && !author.trim().isEmpty()) {
             spec = spec.and(RecipeSpecification.hasAuthor(author));
+        }
+        
+        if (authorId != null) {
+            spec = spec.and(RecipeSpecification.hasAuthorId(authorId));
         }
         
         if (tags != null && !tags.isEmpty()) {
@@ -344,6 +369,47 @@ public class RecipeService {
         return recipes.stream()
                 .map(RecipeMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    public AuthorSearchResponse searchByAuthorId(Long authorId) {
+        // Get public recipes by author ID
+        List<Recipe> recipes = recipeRepository.findByAuthorIdAndIsPublicTrue(authorId);
+        List<RecipeResponseDTO> recipeDTOs = recipes.stream()
+                .map(RecipeMapper::toDTO)
+                .collect(Collectors.toList());
+        
+        // Get public recipe books by author ID
+        List<RecipeBook> recipeBooks = recipeBookRepository.findByUserIdAndIsPublicTrue(authorId);
+        List<RecipeBookDTO> recipeBookDTOs = recipeBooks.stream()
+                .map(RecipeBookMapper::toDTO)
+                .collect(Collectors.toList());
+        
+        return new AuthorSearchResponse(authorId, recipeDTOs, recipeBookDTOs);
+    }
+
+    public AuthorSearchResponse searchByAuthorName(String authorUsername) {
+        // Find user by username (case-insensitive)
+        Optional<User> userOpt = userRepository.findByUsernameIgnoreCaseAndDeletedFalse(authorUsername);
+        if (userOpt.isEmpty()) {
+            return new AuthorSearchResponse(null, List.of(), List.of());
+        }
+        
+        User user = userOpt.get();
+        Long authorId = user.getId();
+        
+        // Get public recipes by author ID
+        List<Recipe> recipes = recipeRepository.findByAuthorIdAndIsPublicTrue(authorId);
+        List<RecipeResponseDTO> recipeDTOs = recipes.stream()
+                .map(RecipeMapper::toDTO)
+                .collect(Collectors.toList());
+        
+        // Get public recipe books by author ID
+        List<RecipeBook> recipeBooks = recipeBookRepository.findByUserIdAndIsPublicTrue(authorId);
+        List<RecipeBookDTO> recipeBookDTOs = recipeBooks.stream()
+                .map(RecipeBookMapper::toDTO)
+                .collect(Collectors.toList());
+        
+        return new AuthorSearchResponse(authorId, recipeDTOs, recipeBookDTOs);
     }
 
     public List<RecipeResponseDTO> getUserCookedRecipes(Long userId) {

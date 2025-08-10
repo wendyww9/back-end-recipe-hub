@@ -29,8 +29,17 @@ public class RecipeSpecification {
     }
 
     public static Specification<Recipe> hasAuthor(String authorName) {
-        return (root, query, cb) ->
-                cb.equal(cb.lower(root.get("author").get("username")), authorName.toLowerCase());
+        return (root, query, cb) -> {
+            Join<Recipe, Object> authorJoin = root.join("author", JoinType.INNER);
+            return cb.equal(cb.lower(authorJoin.get("username")), authorName.toLowerCase());
+        };
+    }
+
+    public static Specification<Recipe> hasAuthorId(Long authorId) {
+        return (root, query, cb) -> {
+            Join<Recipe, Object> authorJoin = root.join("author", JoinType.INNER);
+            return cb.equal(authorJoin.get("id"), authorId);
+        };
     }
 
     public static Specification<Recipe> hasTag(String tagName) {

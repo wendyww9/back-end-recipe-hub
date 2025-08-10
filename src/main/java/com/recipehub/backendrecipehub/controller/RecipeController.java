@@ -19,6 +19,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.recipehub.backendrecipehub.dto.AuthorSearchResponse;
 
 @RestController
 @RequestMapping("/api/recipes")
@@ -66,10 +67,11 @@ public class RecipeController {
     // }
 
     @GetMapping("/search")
-    public ResponseEntity<List<RecipeResponseDTO>> searchRecipes(
+    public ResponseEntity<?> searchRecipes(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) List<String> tags,
             @RequestParam(required = false) String author,
+            @RequestParam(required = false) Long authorId,
             @RequestParam(required = false) Boolean cooked,
             @RequestParam(required = false) Boolean favourite,
             @RequestParam(required = false) String difficulty,
@@ -83,11 +85,16 @@ public class RecipeController {
             @RequestParam(required = false) String ingredient,
             @RequestParam(required = false) String specialFeature) {
         
-        List<RecipeResponseDTO> recipes = recipeService.searchRecipes(
-                title, tags, author, cooked, favourite, difficulty,
+        Object result = recipeService.searchRecipes(
+                title, tags, author, authorId, cooked, favourite, difficulty,
                 cuisine, mealType, dietary, cookingMethod, occasion, season,
                 health, ingredient, specialFeature);
-        return ResponseEntity.ok(recipes);
+        
+        if (result instanceof AuthorSearchResponse) {
+            return ResponseEntity.ok((AuthorSearchResponse) result);
+        } else {
+            return ResponseEntity.ok((List<RecipeResponseDTO>) result);
+        }
     }
 
     @GetMapping("/{id}")

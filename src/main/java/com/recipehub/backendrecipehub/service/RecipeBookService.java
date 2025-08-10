@@ -100,6 +100,10 @@ public class RecipeBookService {
         return RecipeBookMapper.toDTOList(recipeBooks);
     }
 
+    public List<RecipeBookDTO> getPublicRecipeBooksByUserId(Long userId) {
+        List<RecipeBook> recipeBooks = recipeBookRepository.findByUserIdAndIsPublicTrue(userId);
+        return RecipeBookMapper.toDTOList(recipeBooks);
+    }
 
     public void deleteRecipeBook(Long id) {
         RecipeBook recipeBook = recipeBookRepository.findById(id)

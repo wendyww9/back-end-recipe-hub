@@ -1573,8 +1573,8 @@ Notes:
 **Request Parameters (All Optional):**
 - `title` (string): Search for recipes with title containing this text
 - `tags` (array): Search for recipes with any of these tags
-- `author` (string): Search for recipes by author username
-  (Public-only enforced server-side)
+- `author` (string): Search for recipes by author username (Public-only enforced server-side)
+- `authorId` (long): Search for recipes and recipe books by author ID (Public-only enforced server-side)
 - `cooked` (boolean): Filter by cooked status
 - `favourite` (boolean): Filter by favourite status
 - `cuisine` (string): Filter by cuisine type (e.g., "Italian", "Mexican")
@@ -1588,34 +1588,101 @@ Notes:
 - `ingredient` (string): Filter by ingredient type (e.g., "Chicken", "Pasta")
 - `specialFeature` (string): Filter by special feature (e.g., "Quick", "One-Pot")
 
+**Search Behavior:**
+- **Author-Only Search:** When only `authorId` or `author` parameters are provided (no other filters), returns both recipes and recipe books by that author in `AuthorSearchResponse` format
+- **Filtered Search:** When any other parameters are provided (title, tags, cuisine, etc.), returns only filtered recipes in `List<RecipeResponseDTO>` format, even if `authorId` or `author` is also specified
+
 **Example Requests:**
 
-**Basic title search:**
+**Author-only search (returns recipes + recipe books):**
+```
+GET /api/recipes/search?authorId=1
+```
+
+**Author-only search by username (returns recipes + recipe books):**
+```
+GET /api/recipes/search?author=alice123
+```
+
+**Basic title search (returns filtered recipes only):**
 ```
 GET /api/recipes/search?title=pasta
 ```
 
-**Single tag search:**
+**Single tag search (returns filtered recipes only):**
 ```
 GET /api/recipes/search?tags=Italian
 ```
 
-**Multiple tags search:**
+**Multiple tags search (returns filtered recipes only):**
 ```
 GET /api/recipes/search?tags=Quick&tags=Easy
 ```
 
-**Cuisine filter:**
+**Author with filters (returns filtered recipes only):**
+```
+GET /api/recipes/search?authorId=1&tags=Easy
+GET /api/recipes/search?author=alice123&title=Chocolate
+```
+
+**Cuisine filter (returns filtered recipes only):**
 ```
 GET /api/recipes/search?cuisine=Mexican
 ```
 
-**Complex search:**
+**Complex search (returns filtered recipes only):**
 ```
 GET /api/recipes/search?title=pasta&cuisine=Italian&difficulty=Easy&tags=Quick
 ```
 
-**Response Body (200 OK):**
+**Response Body (200 OK) - When searching by authorId/author only:**
+```json
+{
+  "authorId": 1,
+  "recipes": [
+    {
+      "id": 1,
+      "title": "Quick Italian Pasta",
+      "description": "A quick and easy Italian pasta dish",
+      "ingredients": [
+        {
+          "name": "Pasta",
+          "unit": "lb",
+          "quantity": 1.0
+        }
+      ],
+      "instructions": [
+        "Boil pasta according to package directions",
+        "Heat olive oil in pan"
+      ],
+      "isPublic": true,
+      "cooked": false,
+      "favourite": false,
+      "likeCount": 0,
+      "authorId": 1,
+      "authorUsername": "alice123",
+      "originalRecipeId": null,
+      "tags": ["Italian", "Quick"],
+      "createdAt": "2025-08-06T00:46:55.063737",
+      "updatedAt": "2025-08-06T00:46:55.056021"
+    }
+  ],
+  "recipeBooks": [
+    {
+      "id": 1,
+      "name": "My Italian Collection",
+      "description": "Collection of Italian recipes",
+      "isPublic": true,
+      "userId": 1,
+      "recipeIds": [1, 2, 3]
+    }
+  ],
+  "totalRecipes": 1,
+  "totalRecipeBooks": 1
+}
+```
+
+**Response Body (200 OK) - When using other filters:**
 ```json
 [
   {
@@ -1664,247 +1731,8 @@ GET /api/recipes/search?title=pasta&cuisine=Italian&difficulty=Easy&tags=Quick
 ```
 
 **Key Features:**
+- **Smart Response Format:** Automatically chooses response format based on search parameters
 - **Database-Level Filtering:** Uses JPA Specifications for efficient SQL queries
 - **Multiple Criteria:** Can combine any combination of search parameters
 - **Case-Insensitive:** All text searches are case-insensitive
-- **Tag Categories:** Support for specific tag categories (cuisine, difficulty, etc.)
-- **Generic Tags:** Support for generic tag search with multiple values
-- **Performance:** Efficient database queries instead of in-memory filtering
-- **Flexible:** Can search with any combination of parameters
-
-**Search Examples:**
-
-**Find all Italian recipes:**
-```
-GET /api/recipes/search?cuisine=Italian
-```
-
-**Find quick and easy recipes:**
-```
-GET /api/recipes/search?tags=Quick&tags=Easy
-```
-
-**Find dinner recipes with pasta:**
-```
-GET /api/recipes/search?mealType=Dinner&ingredient=Pasta
-```
-
-**Find healthy vegetarian recipes:**
-```
-GET /api/recipes/search?dietary=Vegetarian&health=Healthy
-```
-
-**Find recipes by specific author:**
-```
-GET /api/recipes/search?author=testuser
-```
-
-**Find only public recipes:**
-```
-GET /api/recipes/search?isPublic=true
-```
-
-**Find recipes with multiple criteria:**
-```
-GET /api/recipes/search?title=pasta&cuisine=Italian&difficulty=Easy&tags=Quick&mealType=Dinner
-```
-
----
-
-## Data Transfer Objects (DTOs)
-
-### UserRequestDTO
-```json
-{
-  "username": "string (required, 3-50 characters)",
-  "email": "string (required, valid email format)",
-  "password": "string (required, 6-100 characters)"
-}
-```
-
-### UserResponseDTO
-```json
-{
-  "id": 1,
-  "username": "string",
-  "email": "string",
-  "createdAt": "2025-07-29T21:51:22.106186"
-}
-```
-*Note: Password is never included in response DTOs for security reasons*
-
-### RecipeRequestDTO
-```json
-{
-  "title": "string (required, 1-255 characters)",
-  "description": "string (optional, max 1000 characters)",
-  "ingredients": [
-    {
-      "name": "string (required, 1-100 characters)",
-      "unit": "string (required, 1-50 characters)",
-      "quantity": 1.0 (required, minimum 0.1)
-    }
-  ] (required, at least 1 ingredient),
-  "instructions": ["string"] (required, at least 1 instruction),
-  "imageUrl": "string (optional, max 1000 characters, S3 URL or HTTP/HTTPS URL)",
-  "isPublic": true,
-  "cooked": false,
-  "favourite": false,
-  "authorId": 1 (required),
-  "originalRecipeId": null,
-  "tagNames": ["Italian", "Quick", "Easy"] (optional, array of tag names)
-}
-```
-
-### RecipeResponseDTO
-```json
-{
-  "id": 1,
-  "title": "string",
-  "description": "string",
-  "ingredients": [
-    {
-      "name": "string",
-      "unit": "string",
-      "quantity": 1.0
-    }
-  ],
-  "instructions": ["string"],
-  "imageUrl": "string (S3 URL or HTTP/HTTPS URL)",
-  "isPublic": true,
-  "cooked": false,
-  "favourite": false,
-  "likeCount": 0,
-  "authorId": 1,
-  "authorUsername": "string",
-  "originalRecipeId": null,
-  "tags": ["Italian", "Quick", "Easy"],
-  "createdAt": "2025-07-29T21:51:22.106186",
-  "updatedAt": "2025-07-29T21:51:22.108822"
-}
-```
-
-### IngredientDTO
-```json
-{
-  "name": "string (required, 1-100 characters)",
-  "unit": "string (required, 1-50 characters)",
-  "quantity": 1.0 (required, minimum 0.1)
-}
-```
-
-### RecipeBookDTO
-```json
-{
-  "id": 1,
-  "name": "string (required, 1-255 characters)",
-  "description": "string (optional, max 1000 characters)",
-  "isPublic": true,
-  "userId": 1,
-  "recipeIds": [1, 2, 3] (optional, array of recipe IDs)
-}
-```
-
-### TagDTO
-```json
-{
-  "id": 1,
-  "name": "string",
-  "recipeCount": 5
-}
-```
-
-### PasswordUpdateDTO
-```json
-{
-  "currentPassword": "string (required)",
-  "newPassword": "string (required, 6-100 characters)"
-}
-```
-
-### EmailUpdateDTO
-```json
-{
-  "currentPassword": "string (required)",
-  "newEmail": "string (required, valid email format)"
-}
-```
-
-## Validation Rules
-
-### User Validation
-- **username:** Required, 3-50 characters
-- **email:** Required, valid email format
-- **password:** Required, 6-100 characters
-
-### Recipe Validation
-- **title:** Required, 1-255 characters
-- **description:** Optional, max 1000 characters
-- **ingredients:** Required, at least 1 ingredient
-  - **name:** Required, 1-100 characters
-  - **unit:** Required, 1-50 characters
-  - **quantity:** Required, minimum 0.1
-- **instructions:** Required, at least 1 instruction
-- **imageUrl:** Optional, max 1000 characters, must be valid HTTP/HTTPS URL or S3 path
-- **tagNames:** Optional, array of tag names (strings)
-- **authorId:** Required, positive integer
-
-### Recipe Book Validation
-- **name:** Required, 1-255 characters
-- **description:** Optional, max 1000 characters
-- **userId:** Included in response, managed by backend
-
-### Password/Email Update Validation
-- **currentPassword:** Required
-- **newPassword:** Required, 6-100 characters
-- **newEmail:** Required, valid email format
-
-## HTTP Status Codes
-
-- **200 OK:** Request successful
-- **201 Created:** Resource created successfully
-- **204 No Content:** Request successful, no content to return
-- **400 Bad Request:** Invalid request data or validation errors
-- **401 Unauthorized:** Authentication required or invalid credentials
-- **403 Forbidden:** Access denied (legacy - not used in current implementation)
-- **404 Not Found:** Resource not found
-- **409 Conflict:** Resource already exists (e.g., duplicate email)
-- **500 Internal Server Error:** Server error
-
-## Error Response Format
-
-All error responses follow a consistent format:
-
-```json
-{
-  "message": "Error type",
-  "details": "Detailed error message",
-  "timestamp": "2025-07-31T00:37:15.044Z",
-  "status": 400
-}
-```
-
-## Notes
-
-1. **Authentication:** Currently using HTTP Basic Authentication
-2. **Password Security:** Passwords are never returned in any API responses for security reasons
-3. **User DTOs:** User endpoints use separate RequestDTO (for input) and ResponseDTO (for output) to ensure password security
-4. **CORS:** Enabled for all origins (`*`)
-5. **Database:** Uses H2 in-memory database for development, PostgreSQL for production
-6. **Partial Updates:** Recipe and Recipe Book update endpoints support partial updates (only send fields you want to change)
-7. **Privacy:** Recipe and Recipe Book endpoints respect privacy settings (public/private)
-8. **Authorization:** Frontend controls access to user's own recipes and recipe books
-9. **Timestamps:** All recipes include `createdAt` and `updatedAt` timestamps
-10. **Like Count:** Separate endpoint for updating like count without authorization requirements
-11. **Recipe Forking:** Fork functionality allows creating copies of recipes with optional modifications, similar to GitHub's fork feature
-12. **DTO Consistency:** All endpoints now return consistent DTO objects
-13. **User Recipe Filtering:** Dedicated endpoints for cooked and favourite recipes
-14. **Search Functionality:** Case-insensitive search with partial matching support
-15. **Recipe Books:** New feature for organizing recipes into collections
-16. **Validation:** Comprehensive input validation with detailed error messages
-17. **Error Handling:** Global exception handling with consistent error response format
-18. **Business Logic Separation:** Controllers are now purely REST endpoints with business logic moved to services
-19. **Tag System:** Comprehensive tag system for recipe categorization and filtering
-20. **Enhanced Search:** Database-level filtering using JPA Specifications for efficient search
-21. **Tag Categories:** Support for specific tag categories (cuisine, difficulty, meal type, etc.)
-22. **Predefined Tags:** 80+ predefined tags across multiple categories for consistent categorization 
+- **Public-Only:** All searches return only public content 

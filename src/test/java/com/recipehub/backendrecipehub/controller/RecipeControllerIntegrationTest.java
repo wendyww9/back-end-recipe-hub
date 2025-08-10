@@ -75,6 +75,8 @@ class RecipeControllerIntegrationTest {
         jdbcTemplate.update("DELETE FROM recipe_book_recipes");
         jdbcTemplate.update("UPDATE recipes SET original_recipe_id = NULL");
         recipeRepository.deleteAllInBatch();
+        // Delete recipe books before users to avoid FK constraint violation
+        jdbcTemplate.update("DELETE FROM recipe_books");
         userRepository.deleteAllInBatch();
         
         // Use UserService to properly encode password
@@ -111,6 +113,139 @@ class RecipeControllerIntegrationTest {
                 .param("title", "test"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));
+    }
+
+    @Test
+    void testSearchByAuthorId() throws Exception {
+        // Create a recipe first
+        List<IngredientDTO> ingredients = new ArrayList<>();
+        IngredientDTO ingredient = new IngredientDTO();
+        ingredient.setName("Test Ingredient");
+        ingredient.setUnit("cup");
+        ingredient.setQuantity(1.0);
+        ingredients.add(ingredient);
+
+        List<String> instructions = new ArrayList<>();
+        instructions.add("Test instruction step 1");
+
+        String ingredientsJson = objectMapper.writeValueAsString(ingredients);
+        String instructionsJson = objectMapper.writeValueAsString(instructions);
+
+        // Create a recipe for the test user
+        mockMvc.perform(post("/api/recipes")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .param("title", "Test Recipe for Author Search")
+                .param("description", "Test Description")
+                .param("ingredients", ingredientsJson)
+                .param("instructions", instructionsJson)
+                .param("authorId", testUser.getId().toString())
+                .param("isPublic", "true")
+                .param("cooked", "false")
+                .param("favourite", "false"))
+                .andExpect(status().isOk());
+
+        // Test search by authorId
+        mockMvc.perform(get("/api/recipes/search")
+                .param("authorId", testUser.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.authorId").value(testUser.getId()))
+                .andExpect(jsonPath("$.recipes").isArray())
+                .andExpect(jsonPath("$.recipeBooks").isArray())
+                .andExpect(jsonPath("$.totalRecipes").exists())
+                .andExpect(jsonPath("$.totalRecipeBooks").exists());
+    }
+
+    @Test
+    void testSearchByAuthorIdWithRecipeBook() throws Exception {
+        // Create a recipe first
+        List<IngredientDTO> ingredients = new ArrayList<>();
+        IngredientDTO ingredient = new IngredientDTO();
+        ingredient.setName("Test Ingredient");
+        ingredient.setUnit("cup");
+        ingredient.setQuantity(1.0);
+        ingredients.add(ingredient);
+
+        List<String> instructions = new ArrayList<>();
+        instructions.add("Test instruction step 1");
+
+        String ingredientsJson = objectMapper.writeValueAsString(ingredients);
+        String instructionsJson = objectMapper.writeValueAsString(instructions);
+
+        // Create a recipe for the test user
+        MvcResult recipeResult = mockMvc.perform(post("/api/recipes")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .param("title", "Test Recipe for Author Search")
+                .param("description", "Test Description")
+                .param("ingredients", ingredientsJson)
+                .param("instructions", instructionsJson)
+                .param("authorId", testUser.getId().toString())
+                .param("isPublic", "true")
+                .param("cooked", "false")
+                .param("favourite", "false"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        // Extract recipe ID from response
+        JsonNode recipeResponse = objectMapper.readTree(recipeResult.getResponse().getContentAsString());
+        Long recipeId = recipeResponse.get("id").asLong();
+
+        // Create a recipe book for the test user
+        mockMvc.perform(post("/api/recipebooks")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Test Recipe Book\",\"description\":\"Test Description\",\"userId\":" + testUser.getId() + ",\"isPublic\":true,\"recipeIds\":[" + recipeId + "]}"))
+                .andExpect(status().isOk());
+
+        // Test search by authorId - should return both recipe and recipe book
+        mockMvc.perform(get("/api/recipes/search")
+                .param("authorId", testUser.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.authorId").value(testUser.getId()))
+                .andExpect(jsonPath("$.recipes").isArray())
+                .andExpect(jsonPath("$.recipeBooks").isArray())
+                .andExpect(jsonPath("$.totalRecipes").value(1))
+                .andExpect(jsonPath("$.totalRecipeBooks").value(1))
+                .andExpect(jsonPath("$.recipes[0].title").value("Test Recipe for Author Search"))
+                .andExpect(jsonPath("$.recipeBooks[0].name").value("Test Recipe Book"));
+    }
+
+    @Test
+    void testSearchWithoutAuthorIdReturnsNormalResponse() throws Exception {
+        // Create a recipe first
+        List<IngredientDTO> ingredients = new ArrayList<>();
+        IngredientDTO ingredient = new IngredientDTO();
+        ingredient.setName("Test Ingredient");
+        ingredient.setUnit("cup");
+        ingredient.setQuantity(1.0);
+        ingredients.add(ingredient);
+
+        List<String> instructions = new ArrayList<>();
+        instructions.add("Test instruction step 1");
+
+        String ingredientsJson = objectMapper.writeValueAsString(ingredients);
+        String instructionsJson = objectMapper.writeValueAsString(instructions);
+
+        // Create a recipe for the test user
+        mockMvc.perform(post("/api/recipes")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .param("title", "Test Recipe for Normal Search")
+                .param("description", "Test Description")
+                .param("ingredients", ingredientsJson)
+                .param("instructions", instructionsJson)
+                .param("authorId", testUser.getId().toString())
+                .param("isPublic", "true")
+                .param("cooked", "false")
+                .param("favourite", "false"))
+                .andExpect(status().isOk());
+
+        // Test search without authorId - should return normal array response
+        mockMvc.perform(get("/api/recipes/search")
+                .param("title", "Test Recipe for Normal Search"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].title").value("Test Recipe for Normal Search"));
     }
 
     @Test

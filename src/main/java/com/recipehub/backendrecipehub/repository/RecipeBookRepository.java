@@ -13,5 +13,7 @@ public interface RecipeBookRepository extends JpaRepository<RecipeBook, Long> {
     List<RecipeBook> findByUserId(Long userId);
     // Find public recipe books
     List<RecipeBook> findByIsPublicTrue();
+    // Find public recipe books by user ID
+    List<RecipeBook> findByUserIdAndIsPublicTrue(Long userId);
     Optional<RecipeBook> findByIdAndIsPublicTrue(Long id);
 }
