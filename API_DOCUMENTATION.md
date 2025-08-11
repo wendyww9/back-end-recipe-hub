@@ -981,6 +981,56 @@ PUT /api/recipes/1/likecount?likeCount=15
 
 ---
 
+### 21. Delete Recipe
+**DELETE** `/api/recipes/{id}`
+
+**Description:** Soft-deletes a recipe by marking it as deleted. The recipe remains in the database but is excluded from all public queries and responses.
+
+**Path Parameters:**
+- `id` (path parameter): The ID of the recipe to delete (positive integer)
+
+**Request Body:** None
+
+**Example Request:**
+```
+DELETE /api/recipes/1
+```
+
+**Response Body (200 OK):**
+```json
+{
+  "message": "Recipe deleted successfully"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "message": "Recipe not found with id: 1"
+}
+```
+
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "message": "Failed to delete recipe: [error details]"
+}
+```
+
+**Notes:**
+- **Soft Delete**: The recipe is not physically removed from the database
+- **Data Preservation**: All recipe data is preserved for potential recovery
+- **Exclusion from Queries**: Soft-deleted recipes are automatically excluded from:
+  - `GET /api/recipes` (all recipes)
+  - `GET /api/recipes/search` (search results)
+  - Recipe book responses
+  - User recipe listings
+- **Forked Recipes**: If a recipe has been forked, the forked recipes remain accessible even after the original is deleted
+- **No Authorization**: Currently no authorization check - any user can delete any recipe
+- **Permanent**: Soft deletion is currently permanent (no restore functionality)
+
+---
+
 ### 21.1. Fork Recipe
 **POST** `/api/recipes/{id}/fork`
 
