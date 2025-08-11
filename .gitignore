@@ -58,12 +58,6 @@ aws-credentials.txt
 .env.dev
 .env.test
 
-### Elastic Beanstalk Files ###
-.elasticbeanstalk/*
-!.elasticbeanstalk/*.cfg.yml
-!.elasticbeanstalk/*.global.yml
-!.elasticbeanstalk/config.yml
-
 ### Temporary Files ###
 *.tmp
 *.temp

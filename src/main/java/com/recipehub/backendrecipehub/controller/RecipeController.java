@@ -4,8 +4,6 @@ import com.recipehub.backendrecipehub.dto.RecipeRequestDTO;
 import com.recipehub.backendrecipehub.dto.RecipeResponseDTO;
 import com.recipehub.backendrecipehub.exception.RecipeNotFoundException;
 import com.recipehub.backendrecipehub.service.RecipeService;
-
-// removed unused Valid import
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,8 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.s3.S3Client;
-
-// removed unused imports
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,11 +56,6 @@ public class RecipeController {
     public List<RecipeResponseDTO> getAllRecipes() {
         return recipeService.getAllPublicRecipes();
     }
-
-    // @GetMapping("/public")
-    // public List<RecipeResponseDTO> getAllPublicRecipes() {
-    //     return recipeService.getAllPublicRecipes();
-    // }
 
     @GetMapping("/search")
     public ResponseEntity<?> searchRecipes(

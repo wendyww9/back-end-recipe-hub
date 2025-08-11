@@ -6,10 +6,8 @@ import com.recipehub.backendrecipehub.dto.IngredientDTO;
 import com.recipehub.backendrecipehub.dto.RecipeRequestDTO;
 import com.recipehub.backendrecipehub.dto.UserRequestDTO;
 import com.recipehub.backendrecipehub.model.User;
-// removed unused TagService import
 import com.recipehub.backendrecipehub.repository.RecipeRepository;
 import com.recipehub.backendrecipehub.repository.UserRepository;
-// removed unused RecipeService import
 import com.recipehub.backendrecipehub.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +17,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebM
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-// removed unused TestPropertySource import
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -51,12 +48,8 @@ class RecipeControllerIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
-    // removed unused RecipeService field
-
     @Autowired
     private UserService userService;
-
-    // removed unused TagService field
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;

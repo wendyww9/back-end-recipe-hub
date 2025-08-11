@@ -126,7 +126,14 @@ public class RecipeSpecification {
     }
 
     public static Specification<Recipe> hasIngredient(String ingredient) {
-        return hasTag(ingredient);
+        return (root, query, cb) -> {
+            if (ingredient == null || ingredient.isBlank()) return cb.conjunction();
+            // ingredients is stored as TEXT via converter; compare as lower(text)
+            return cb.like(
+                cb.lower(root.get("ingredients").as(String.class)),
+                "%" + ingredient.toLowerCase() + "%"
+            );
+        };
     }
 
     public static Specification<Recipe> hasSpecialFeature(String specialFeature) {

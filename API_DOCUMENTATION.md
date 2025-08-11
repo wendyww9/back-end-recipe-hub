@@ -3,7 +3,7 @@
 ## Base URL
 ```
 local test: http://localhost:8080/api
-Deployment: http://recipehub-dev-env.eba-6mi9w35s.us-east-2.elasticbeanstalk.com/api
+Deployment: https://back-end-recipe-hub.onrender.com/api
 ```
 
 ## Setup and Running
@@ -1591,6 +1591,10 @@ Notes:
 **Search Behavior:**
 - **Author-Only Search:** When only `authorId` or `author` parameters are provided (no other filters), returns both recipes and recipe books by that author in `AuthorSearchResponse` format
 - **Filtered Search:** When any other parameters are provided (title, tags, cuisine, etc.), returns only filtered recipes in `List<RecipeResponseDTO>` format, even if `authorId` or `author` is also specified
+- **Case-Insensitive:** All text-based searches (title, author, tags, ingredient, etc.) are case-insensitive
+- **Public Only:** Returns only public recipes and recipe books (where `isPublic: true`)
+- **Ingredient Search:** Searches within the JSON ingredients field for ingredient names
+- **Smart Filtering:** Combines multiple filters using AND logic
 
 **Example Requests:**
 
@@ -1633,6 +1637,19 @@ GET /api/recipes/search?cuisine=Mexican
 **Complex search (returns filtered recipes only):**
 ```
 GET /api/recipes/search?title=pasta&cuisine=Italian&difficulty=Easy&tags=Quick
+```
+
+**Ingredient search (returns filtered recipes only):**
+```
+GET /api/recipes/search?ingredient=flour
+GET /api/recipes/search?ingredient=sugar
+```
+
+**Combined filters with ingredient (returns filtered recipes only):**
+```
+GET /api/recipes/search?authorId=1&ingredient=flour
+GET /api/recipes/search?title=chocolate&ingredient=flour
+GET /api/recipes/search?ingredient=flour&tags=Easy
 ```
 
 **Response Body (200 OK) - When searching by authorId/author only:**
@@ -1679,8 +1696,41 @@ GET /api/recipes/search?title=pasta&cuisine=Italian&difficulty=Easy&tags=Quick
   ],
   "totalRecipes": 1,
   "totalRecipeBooks": 1
-}
 ```
+
+**Response Body (200 OK) - When searching with filters (returns filtered recipes only):**
+```json
+[
+  {
+    "id": 1,
+    "title": "Quick Italian Pasta",
+    "description": "A quick and easy Italian pasta dish",
+    "ingredients": [
+      {
+        "name": "Pasta",
+        "unit": "lb",
+        "quantity": 1.0
+      }
+    ],
+    "instructions": [
+      "Boil pasta according to package directions",
+      "Heat olive oil in pan"
+    ],
+    "isPublic": true,
+    "cooked": false,
+    "favourite": false,
+    "likeCount": 0,
+    "authorId": 1,
+    "authorUsername": "alice123",
+    "originalRecipeId": null,
+    "tags": ["Italian", "Quick"],
+    "createdAt": "2025-08-06T00:46:55.063737",
+    "updatedAt": "2025-08-06T00:46:55.056021"
+  }
+]
+```
+
+
 
 **Response Body (200 OK) - When using other filters:**
 ```json

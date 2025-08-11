@@ -1,96 +1,108 @@
-# 🚀 AWS Elastic Beanstalk Deployment Setup
+# 🚀 Render.com Deployment Setup
 
-This guide documents the current working deployment setup for the RecipeHub backend application.
+This document outlines the deployment setup for RecipeHub Backend on Render.com using Docker containers.
 
-## 📋 Current Configuration
+## 📋 Overview
 
-### GitHub Actions Workflow
-- **File**: `.github/workflows/deploy-to-eb.yml`
-- **Trigger**: Push to `main` branch
-- **Platform**: Java 17 on Amazon Linux 2023
+### Render.com Deployment
+- **Platform**: Render.com with Docker containers
+- **Database**: Managed PostgreSQL service
+- **Build**: Multi-stage Docker build
+- **Deployment**: Automatic deployment from GitHub
 
-### Deployment Process
-1. **Build**: Maven builds the JAR file
-2. **Copy**: JAR is copied to root directory
-3. **Deploy**: EB CLI deploys to Elastic Beanstalk
-4. **Health Check**: Verifies deployment with `/actuator/health`
+### 1. Render.com Service Setup
 
-## 🔧 Required Setup
+#### Web Service Configuration
+1. **Connect Repository**: Link GitHub repository to Render
+2. **Build Command**: `mvn clean package -DskipTests`
+3. **Start Command**: `java -jar target/back-end-recipe-hub-0.0.1-SNAPSHOT.jar`
+4. **Environment**: Docker
 
-### 1. AWS Elastic Beanstalk Environment
-- **Application**: `recipehub-dev`
-- **Environment**: `Recipehub-dev-env`
-- **Platform**: Corretto 17 running on 64bit Amazon Linux 2023
-- **Region**: `us-east-2`
+#### Environment Variables
+Set these in Render Dashboard → Environment Variables:
 
-### 2. GitHub Secrets
-Configure these in GitHub repository → Settings → Secrets and variables → Actions:
-
+**Database Configuration:**
 ```
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+JDBC_DATABASE_URL=jdbc:postgresql://host:port/database
+JDBC_DATABASE_USERNAME=your_username
+JDBC_DATABASE_PASSWORD=your_password
+```
+
+**AWS S3 Configuration:**
+```
+AWS_S3_BUCKET_NAME=your-s3-bucket
 AWS_REGION=us-east-2
-EB_ENVIRONMENT_NAME=Recipehub-dev-env
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
 ```
 
-### 3. Environment Variables in EB Console
-Set these in AWS EB Console → Configuration → Software → Environment Properties:
-
+**Application Configuration:**
 ```
-DATABASE_URL=jdbc:postgresql://your-rds-endpoint:5432/your-database
-DATABASE_USERNAME=your-username
-DATABASE_PASSWORD=your-password
+SPRING_PROFILES_ACTIVE=render
+PORT=8080
 ```
 
-## 📁 Key Files
+### 2. Database Setup
 
-### Deployment Configuration
-- **`.github/workflows/deploy-to-eb.yml`** - GitHub Actions workflow
-- **`Procfile`** - EB startup command
-- **`.elasticbeanstalk/config.yml`** - EB configuration
-- **`.ebignore`** - Files to exclude from deployment
+#### PostgreSQL Database
+1. **Create Database**: Use Render's managed PostgreSQL service
+2. **Connection**: Render automatically provides connection details
+3. **Migration**: Application auto-creates tables on startup
 
-### Application Configuration
-- **`src/main/resources/application.properties`** - Environment variables for database
-- **`pom.xml`** - Spring Boot Actuator dependency
+### 3. Deployment Process
 
-## 🚀 How It Works
+#### Automatic Deployment
+1. **Push to main** triggers automatic deployment
+2. **Build Process**: Docker multi-stage build
+3. **Health Checks**: Built-in health monitoring
+4. **Auto-scaling**: Automatic scaling based on traffic
 
-1. **Push to main** triggers GitHub Actions
-2. **Maven builds** the application JAR
-3. **JAR is copied** to root directory
-4. **EB CLI deploys** the package
-5. **Health check** verifies `/actuator/health` endpoint
-6. **Application starts** with database connection
-
-## 🔍 Health Monitoring
-
-- **EB Environment Health**: Monitored in AWS Console
-- **Application Health**: `/actuator/health` endpoint
-- **Database Health**: Included in actuator health check
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-1. **JAR not found**: Ensure JAR copy step in workflow
-2. **Database connection**: Check environment variables in EB console
-3. **Health check fails**: Verify actuator endpoint is accessible
-
-### Debug Commands
+#### Manual Deployment
 ```bash
-# Check deployment status
-eb status
+# Build Docker image locally
+docker build -t recipehub-backend .
 
-# View application logs
-eb logs
-
-# Test health endpoint
-curl http://your-eb-url/actuator/health
+# Run container
+docker run -p 8080:8080 \
+  -e SPRING_PROFILES_ACTIVE=render \
+  -e JDBC_DATABASE_URL=your_db_url \
+  -e AWS_S3_BUCKET_NAME=your_bucket \
+  recipehub-backend
 ```
 
-## 📝 Notes
+### 4. Configuration Files
 
-- **Security**: Database credentials are in EB environment variables, not in code
-- **Build**: Maven build happens in GitHub Actions, not on EB instance
-- **Health Check**: Uses Spring Boot Actuator for reliable health monitoring
-- **Clean History**: All deployment setup is in one clean commit 
+**Essential Files:**
+- **`Dockerfile`** - Multi-stage Docker build configuration
+- **`application-render.properties`** - Render-specific configuration
+- **`pom.xml`** - Maven build configuration
+
+### 5. Troubleshooting
+
+#### Common Issues
+1. **Build Failures**: Check Maven build logs in Render dashboard
+2. **Database Connection**: Verify JDBC_DATABASE_URL format
+3. **Environment Variables**: Ensure all required variables are set
+4. **Health Checks**: Monitor `/actuator/health` endpoint
+
+#### Health Monitoring
+- **Endpoint**: `https://back-end-recipe-hub.onrender.com/actuator/health`
+- **Logs**: Available in Render dashboard
+- **Metrics**: Built-in monitoring and alerting
+
+### 6. Production URL
+
+**Live Application**: https://back-end-recipe-hub.onrender.com
+
+### 7. Benefits of Render.com Deployment
+
+- **Automatic Scaling**: Scales based on traffic
+- **Managed Database**: PostgreSQL service included
+- **SSL/TLS**: Automatic HTTPS certificates
+- **Global CDN**: Fast global access
+- **Zero Downtime**: Rolling deployments
+- **Cost Effective**: Pay-per-use pricing model
+
+---
+
+**Note**: This deployment setup replaces the previous AWS Elastic Beanstalk configuration. The application is now fully containerized and deployed on Render.com for better scalability and ease of management. 
